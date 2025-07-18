@@ -1,6 +1,6 @@
 # MADZINE - MetaModule Edition
 
-A comprehensive collection of music modules ported to the MetaModule platform, featuring sequencers, synthesizers, effects, and utilities for electronic music production.
+A comprehensive collection of music modules ported to the MetaModule platform, featuring sequencers, synthesizers, effects, and utilities for electronic music production. Developed in collaboration with Claude AI.
 
 ## Original VCV Rack Version
 
