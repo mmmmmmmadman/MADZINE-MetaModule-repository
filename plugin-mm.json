@@ -1,0 +1,52 @@
+{
+	"MetaModuleBrandName": "MADZINE",
+	"MetaModulePluginMaintainer": "MAD",
+	"MetaModulePluginMaintainerEmail": "madzinetw@gmail.com",
+	"MetaModuleDescription": "MADZINE Modules for MetaModule - A comprehensive collection of sequencers, synthesizers, and utilities ported from VCV Rack",
+	"MetaModuleIncludedModules": [
+		{
+			"slug": "SwingLFO",
+			"name": "SwingLFO"
+		},
+		{
+			"slug": "EuclideanRhythm",
+			"name": "Euclidean Rhythm"
+		},
+		{
+			"slug": "ADGenerator",
+			"name": "AD Generator"
+		},
+		{
+			"slug": "Pinpple",
+			"name": "Pinpple"
+		},
+		{
+			"slug": "MADDY",
+			"name": "MADDY"
+		},
+		{
+			"slug": "PPaTTTerning",
+			"name": "PPaTTTerning"
+		},
+		{
+			"slug": "TWNC",
+			"name": "TWNC"
+		},
+		{
+			"slug": "TWNCLight",
+			"name": "TWNC Light"
+		},
+		{
+			"slug": "QQ",
+			"name": "QQ"
+		},
+		{
+			"slug": "Observer",
+			"name": "Observer"
+		},
+		{
+			"slug": "TWNC2",
+			"name": "TWNC2"
+		}
+	]
+}
