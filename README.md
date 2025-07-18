@@ -34,33 +34,6 @@ This is the MetaModule port of the MADZINE plugin. For the original VCV Rack ver
 - **Compiler**: ARM GCC 12.3.1 (for macOS Apple Silicon)
 - **Build System**: CMake 3.22+
 
-## Building
-
-```bash
-# Clone the repository
-git clone https://github.com/mmmmmmmadman/MADZINE-MetaModule-repository.git
-cd MADZINE-MetaModule-repository
-
-# Create build directory
-mkdir build && cd build
-
-# Configure and build
-cmake ..
-cmake --build .
-```
-
-## Installation
-
-After building, the plugin will be available in your MetaModule plugins directory.
-
-## Features
-
-- **High-quality audio processing** optimized for MetaModule
-- **Comprehensive CV control** for all major parameters
-- **Visual feedback** with integrated scopes and lights
-- **Memory-safe implementation** using fixed arrays instead of dynamic allocation
-- **Eurorack-compatible** voltage standards
-
 ## License
 
 GPL-3.0 License - see [LICENSE](LICENSE) file for details.
