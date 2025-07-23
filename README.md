@@ -6,26 +6,30 @@ A comprehensive collection of music modules ported to the MetaModule platform, f
 
 This is the MetaModule port of the MADZINE plugin. For the original VCV Rack version, visit: [MADZINE VCV Rack](https://github.com/mmmmmmmadman/MADZINE)
 
-## Modules
+## Modules Overview
 
-### Sequencers & Rhythm
-- **SwingLFO** - Dual-waveform LFO with swing and shape control
-- **EuclideanRhythm** - Three-track Euclidean rhythm generator with CV control and clock division
-- **MADDY** - Integrated sequencer with swing clock and 3-track Euclidean rhythm generator
+### Rhythm & Sequencing
+- **TWNC** - Dual-track Euclidean rhythm generator with drum and hi-hats synthesis
+- **TWNC Light** - Simplified dual-track Euclidean rhythm generator with envelope control
+- **TWNC2** - Three-track Euclidean drum machine with drum synthesis
+- **KIMO** - Single-track Euclidean drum machine with bass drum synthesis
+- **Euclidean Rhythm** - Three-track Euclidean Rhythm Generator with CV control and Slew
 - **PPaTTTerning** - Pattern-based CV sequencer with style and density control
+- **MADDY** - Integrated sequencer with swing clock and 3-track Euclidean rhythm generator
 
-### Drum Machines & Synthesis
-- **TWNC** - Dual-track Euclidean rhythm generator for techno sequences with audio synthesis
-- **TWNCLight** - Lightweight dual-track Euclidean rhythm generator with envelope outputs
-- **TWNC2** - Advanced drum machine with kick, snare, and hi-hat synthesis with sidechain ducking
-- **Pinpple** - Ping filter hi-hat synthesizer with dynamic FM modulation
+### Sound Generation
+- **Pinpple** - Ping filter hihat synthesizer with dynamic FM modulation
+- **SwingLFO** - Dual-waveform LFO with swing and shape control
 
-### Envelopes & Modulation
-- **ADGenerator** - Attack/Decay envelope generator with bandpass filtering
-- **QQ** - 3-track S-Curve decay trigger envelope generator with CV control and waveform scope
+### Envelope & Processing
+- **ADGenerator** - Attack Decay envelope generator with curve shaping
+- **QQ** - 3-track S-Curve Decay Trigger envelope generator with CV control and waveform scope
 
-### Utilities
+### Utility & Mixing
+- **U8** - 4HP channel processor with gain/saturation, duck control and mute
+- **YAMANOTE** - 8HP channel processor with chain, send/return function
 - **Observer** - 8-track color scope module for waveform visualization
+- **Obserfour** - 4-track color scope module for waveform visualization
 
 ## System Requirements
 
@@ -46,4 +50,4 @@ GPL-3.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Version
 
-Current version: 2.1.6
+Current version: 2.1.8
