@@ -37,7 +37,7 @@ struct U8 : Module {
     U8() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
         
-        configParam(LEVEL_PARAM, 0.0f, 1.0f, 1.0f, "Level");
+        configParam(LEVEL_PARAM, 0.0f, 2.0f, 1.0f, "Level");
         configParam(DUCK_LEVEL_PARAM, 0.0f, 1.0f, 0.0f, "Duck Level");
         configSwitch(MUTE_PARAM, 0.0f, 1.0f, 0.0f, "Mute", {"Unmuted", "Muted"});
         
@@ -57,17 +57,6 @@ struct U8 : Module {
         for (int i = 0; i < DELAY_BUFFER_SIZE; i++) {
             delayBuffer[i] = 0.0f;
         }
-        delayWriteIndex = 0;
-        muteState = false;
-    }
-
-    void onReset() override {
-        for (int i = 0; i < DELAY_BUFFER_SIZE; i++) {
-            delayBuffer[i] = 0.0f;
-        }
-        delayWriteIndex = 0;
-        muteState = false;
-        muteTrigger.reset();
     }
 
     void process(const ProcessArgs& args) override {
@@ -78,15 +67,11 @@ struct U8 : Module {
             }
         }
         
-        float leftInput = 0.0f;
-        float rightInput = 0.0f;
+        float leftInput = inputs[LEFT_INPUT].getVoltage();
+        float rightInput;
         
         bool leftConnected = inputs[LEFT_INPUT].isConnected();
         bool rightConnected = inputs[RIGHT_INPUT].isConnected();
-        
-        if (leftConnected) {
-            leftInput = inputs[LEFT_INPUT].getVoltage();
-        }
         
         if (leftConnected && !rightConnected) {
             int delaySamples = (int)(0.02f * args.sampleRate);
@@ -103,18 +88,15 @@ struct U8 : Module {
             rightInput = leftInput;
         }
         
-        float duckCV = 0.0f;
-        if (inputs[DUCK_INPUT].isConnected()) {
-            duckCV = clamp(inputs[DUCK_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
-        }
+        float duckCV = clamp(inputs[DUCK_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
         float duckAmount = params[DUCK_LEVEL_PARAM].getValue();
         float sidechainCV = clamp(1.0f - (duckCV * duckAmount * 3.0f), 0.0f, 1.0f);
         
         float levelParam = params[LEVEL_PARAM].getValue();
         if (inputs[LEVEL_CV_INPUT].isConnected()) {
-            levelParam += inputs[LEVEL_CV_INPUT].getVoltage() / 5.0f;
+            float cvInput = clamp(inputs[LEVEL_CV_INPUT].getVoltage() / 5.0f, 0.0f, 2.0f);
+            levelParam *= cvInput;
         }
-        levelParam = clamp(levelParam, 0.0f, 1.0f);
         
         leftInput *= levelParam * sidechainCV;
         rightInput *= levelParam * sidechainCV;
@@ -127,16 +109,16 @@ struct U8 : Module {
             rightInput = 0.0f;
         }
         
-        float chainLeftInput = inputs[CHAIN_LEFT_INPUT].isConnected() ? inputs[CHAIN_LEFT_INPUT].getVoltage() : 0.0f;
-        float chainRightInput = inputs[CHAIN_RIGHT_INPUT].isConnected() ? inputs[CHAIN_RIGHT_INPUT].getVoltage() : 0.0f;
+        float chainLeftInput = inputs[CHAIN_LEFT_INPUT].getVoltage();
+        float chainRightInput = inputs[CHAIN_RIGHT_INPUT].getVoltage();
         
         outputs[LEFT_OUTPUT].setVoltage(leftInput + chainLeftInput);
         outputs[RIGHT_OUTPUT].setVoltage(rightInput + chainRightInput);
     }
     
     void processBypass(const ProcessArgs& args) override {
-        float chainLeftInput = inputs[CHAIN_LEFT_INPUT].isConnected() ? inputs[CHAIN_LEFT_INPUT].getVoltage() : 0.0f;
-        float chainRightInput = inputs[CHAIN_RIGHT_INPUT].isConnected() ? inputs[CHAIN_RIGHT_INPUT].getVoltage() : 0.0f;
+        float chainLeftInput = inputs[CHAIN_LEFT_INPUT].getVoltage();
+        float chainRightInput = inputs[CHAIN_RIGHT_INPUT].getVoltage();
         
         outputs[LEFT_OUTPUT].setVoltage(chainLeftInput);
         outputs[RIGHT_OUTPUT].setVoltage(chainRightInput);
@@ -154,15 +136,14 @@ struct U8Widget : ModuleWidget {
 
         addInput(createInputCentered<PJ301MPort>(Vec(15, 59), module, U8::LEFT_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(centerX + 15, 59), module, U8::RIGHT_INPUT));
-        
+
         addParam(createParamCentered<RoundBlackKnob>(Vec(centerX, 123), module, U8::LEVEL_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(centerX, 161), module, U8::LEVEL_CV_INPUT));
         
         addParam(createParamCentered<RoundBlackKnob>(Vec(centerX, 216), module, U8::DUCK_LEVEL_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(centerX, 254), module, U8::DUCK_INPUT));
         
-        addParam(createParamCentered<VCVButton>(Vec(centerX, 292), module, U8::MUTE_PARAM));
-        addChild(createLightCentered<MediumLight<RedLight>>(Vec(centerX, 292), module, U8::MUTE_LIGHT));
+        addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<RedLight>>>(Vec(centerX, 292), module, U8::MUTE_PARAM, U8::MUTE_LIGHT));
         addInput(createInputCentered<PJ301MPort>(Vec(centerX, 316), module, U8::MUTE_TRIG_INPUT));
         
         addInput(createInputCentered<PJ301MPort>(Vec(15, 343), module, U8::CHAIN_LEFT_INPUT));
