@@ -63,6 +63,18 @@
 		{
 			"slug": "KIMO",
 			"name": "KIMO"
+		},
+		{
+			"slug": "Quantizer",
+			"name": "Quantizer"
+		},
+		{
+			"slug": "EllenRipley",
+			"name": "EllenRipley"
+		},
+		{
+			"slug": "MADDYPlus",
+			"name": "MADDY Plus"
 		}
 	]
 }

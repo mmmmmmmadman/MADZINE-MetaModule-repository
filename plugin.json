@@ -1,7 +1,7 @@
 {
   "slug": "MADZINE",
   "name": "MADZINE",
-  "version": "2.1.8",
+  "version": "2.2.0",
   "license": "GPL-3.0-or-later",
   "brand": "MADZINE",
   "author": "MAD",
@@ -27,7 +27,9 @@
     "U8",
     "YAMANOTE",
     "Obserfour",
-    "KIMO"
+    "KIMO",
+    "Quantizer",
+    "MADDYPlus"
   ],
   "modules": [
     {
@@ -119,6 +121,24 @@
       "name": "Obserfour",
       "description": "4-track color scope module for waveform visualization",
       "tags": ["Visual", "Utility"]
+    },
+     {
+      "slug": "Quantizer",
+      "name": "Quantizer",
+      "description": "8HP chromatic quantizer with 12-note microtuning and cultural scale presets",
+      "tags": ["Quantizer", "Tuner"]
+    },
+    {
+      "slug": "EllenRipley",
+      "name": "Ellen Ripley", 
+      "description": "Multi-effect processor with delay, granular synthesis, reverb, and chaos modulation",
+      "tags": ["Delay", "Reverb", "Granular", "Effect", "Random"]
+    },
+    {
+      "slug": "MADDYPlus",
+      "name": "MADDY Plus",
+      "description": "Enhanced integrated sequencer with swing clock, 3-track Euclidean rhythm generator, and dual CV sequencers",
+      "tags": ["Sequencer", "Clock generator", "Envelope generator"]
     }
   ]
 }

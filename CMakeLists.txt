@@ -27,6 +27,9 @@ target_sources(MADZINE PRIVATE
     src/YAMANOTE.cpp
     src/Obserfour.cpp
     src/KIMO.cpp
+    src/Quantizer.cpp
+    src/EllenRipley.cpp
+    src/MADDYPlus.cpp
 )
 
 create_plugin(
