@@ -1,33 +1,8 @@
 #include "plugin.hpp"
-#include <vector>
 #include <algorithm>
 
-struct MADDYPlusEnhancedTextLabel : TransparentWidget {
-    std::string text;
-    float fontSize;
-    NVGcolor color;
-    bool bold;
-
-    MADDYPlusEnhancedTextLabel(Vec pos, Vec size, std::string text, float fontSize = 12.f,
-                      NVGcolor color = nvgRGB(255, 255, 255), bool bold = true) {
-        box.pos = pos;
-        box.size = size;
-        this->text = text;
-        this->fontSize = fontSize;
-        this->color = color;
-        this->bold = bold;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgFontSize(args.vg, fontSize);
-        nvgFontFaceId(args.vg, APP->window->uiFont->handle);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, color);
-
-        // Simplified: Only draw once (removed expensive bold effect for MetaModule performance)
-        nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-    }
-};
+// NOTE: MADDYPlusEnhancedTextLabel removed for MetaModule compatibility
+// Labels should be part of the panel PNG
 
 // MADDYPlusStandardBlackKnob now using implementation from widgets/Knobs.hpp
 
@@ -455,70 +430,8 @@ struct OldMediumGrayKnob_UNUSED : ParamWidget {
     }
 };
 
-struct WhiteBackgroundBox : Widget {
-    WhiteBackgroundBox(Vec pos, Vec size) {
-        box.pos = pos;
-        box.size = size;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgBeginPath(args.vg);
-        nvgRect(args.vg, 0, 0, box.size.x, box.size.y);
-        nvgFillColor(args.vg, nvgRGB(255, 255, 255));
-        nvgFill(args.vg);
-
-        nvgStrokeWidth(args.vg, 1.0f);
-        nvgStrokeColor(args.vg, nvgRGBA(200, 200, 200, 255));
-        nvgStroke(args.vg);
-    }
-};
-
-struct SectionBox : Widget {
-    SectionBox(Vec pos, Vec size) {
-        box.pos = pos;
-        box.size = size;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgBeginPath(args.vg);
-        nvgRect(args.vg, 0, 0, box.size.x, box.size.y);
-        nvgStrokeWidth(args.vg, 1.0f);
-        nvgStrokeColor(args.vg, nvgRGBA(255, 255, 255, 150));
-        nvgStroke(args.vg);
-    }
-};
-
-struct VerticalLine : Widget {
-    VerticalLine(Vec pos, Vec size) {
-        box.pos = pos;
-        box.size = size;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgBeginPath(args.vg);
-        nvgMoveTo(args.vg, box.size.x / 2.0f, 0);
-        nvgLineTo(args.vg, box.size.x / 2.0f, box.size.y);
-        nvgStrokeWidth(args.vg, 0.5f);
-        nvgStrokeColor(args.vg, nvgRGBA(255, 255, 255, 150));
-        nvgStroke(args.vg);
-    }
-};
-
-struct HorizontalLine : Widget {
-    HorizontalLine(Vec pos, Vec size) {
-        box.pos = pos;
-        box.size = size;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgBeginPath(args.vg);
-        nvgMoveTo(args.vg, 0, box.size.y / 2.0f);
-        nvgLineTo(args.vg, box.size.x, box.size.y / 2.0f);
-        nvgStrokeWidth(args.vg, 0.5f);
-        nvgStrokeColor(args.vg, nvgRGBA(255, 255, 255, 150));
-        nvgStroke(args.vg);
-    }
-};
+// NOTE: WhiteBackgroundBox, SectionBox, VerticalLine, HorizontalLine removed
+// These were unused and would cause UI offset issues in MetaModule
 
 struct DensityParamQuantity : ParamQuantity {
     std::string getDisplayValueString() override {

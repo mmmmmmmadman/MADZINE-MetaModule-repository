@@ -356,40 +356,8 @@ struct DECAPyramid : Module {
 }
 };
 
-struct TechnoEnhancedTextLabel : TransparentWidget {
-    std::string text;
-    float fontSize;
-    NVGcolor color;
-    bool bold;
-
-    TechnoEnhancedTextLabel(Vec pos, Vec size, std::string text, float fontSize = 12.f,
-                      NVGcolor color = nvgRGB(255, 255, 255), bool bold = true) {
-        box.pos = pos;
-        box.size = size;
-        this->text = text;
-        this->fontSize = fontSize;
-        this->color = color;
-        this->bold = bold;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgFontSize(args.vg, fontSize);
-        nvgFontFaceId(args.vg, APP->window->uiFont->handle);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, color);
-
-        if (bold) {
-            float offset = 0.3f;
-            nvgText(args.vg, box.size.x / 2.f - offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f + offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f - offset, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f + offset, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-        } else {
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-        }
-    }
-};
+// NOTE: TechnoEnhancedTextLabel removed for MetaModule compatibility
+// Labels should be part of the panel PNG
 
 struct VolumeMeterWidget : Widget {
     DECAPyramid* module;
@@ -718,20 +686,14 @@ struct DECAPyramid3DDisplay : LedDisplay {
 };
 
 struct DECAPyramidWidget : ModuleWidget {
-DECAPyramidWidget(DECAPyramid* module) {
+    DECAPyramidWidget(DECAPyramid* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "DECAPyramid.png")));
-box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
+        box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
-        addChild(new TechnoEnhancedTextLabel(Vec(480, 1), Vec(120, 20), "DECAPYRAMID", 12.f, nvgRGB(255, 200, 0), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(480, 13), Vec(120, 20), "MADZINE", 10.f, nvgRGB(255, 200, 0), false));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(5, 106), Vec(50, 10), "X", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(5, 166), Vec(50, 10), "Y", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(5, 226), Vec(50, 10), "Z", 10.f, nvgRGB(255, 255, 255), true));
+        // NOTE: All TechnoEnhancedTextLabel removed - labels are on panel PNG
 
         float trackY[] = {35, 85, 145, 205};
-        std::string trackLabels[] = {"T", "X", "Y", "Z"};
         int trackParams[] = {0, DECAPyramid::X_PARAM_1, DECAPyramid::Y_PARAM_1, DECAPyramid::Z_PARAM_1};
         int trackInputs[] = {DECAPyramid::AUDIO_INPUT_1, DECAPyramid::X_CV_INPUT_1, DECAPyramid::Y_CV_INPUT_1, DECAPyramid::Z_CV_INPUT_1};
         float inputOffsets[] = {22, 42, 40, 40};
@@ -739,22 +701,7 @@ box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
         for (int i = 0; i < 8; i++) {
             float baseX = 30.0f + i * 60.0f;
 
-            NVGcolor trackColors[8] = {
-                nvgRGB(10, 149, 149),   // Track 1: 深青色 +10
-                nvgRGB(89, 121, 153),   // Track 2: 石墨藍 +10
-                nvgRGB(112, 61, 163),   // Track 3: 雅緻紫 +10
-                nvgRGB(194, 144, 21),   // Track 4: 深金黃 +10
-                nvgRGB(117, 152, 45),   // Track 5: 橄欖綠 +10
-                nvgRGB(10, 117, 73),    // Track 6: 深翠綠 +10
-                nvgRGB(124, 57, 65),    // Track 7: 深酒紅 +10
-                nvgRGB(152, 135, 200)   // Track 8: 深紫灰 +10
-            };
-
             for (int j = 0; j < 4; j++) {
-                NVGcolor labelColor = (j == 0) ? trackColors[i] : nvgRGB(255, 255, 255);
-                addChild(new TechnoEnhancedTextLabel(Vec(baseX - 15, trackY[j]), Vec(30, 10),
-                    trackLabels[j] + (j == 0 ? std::to_string(i + 1) : ""), 8.f, labelColor, true));
-
                 if (j == 0) {
                     addInput(createInputCentered<PJ301MPort>(Vec(baseX, trackY[j] + inputOffsets[j]), module, trackInputs[j] + i * 4));
                 } else {
@@ -770,23 +717,11 @@ box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
             float leftKnobX = baseX - 15.0f;
             float rightKnobX = baseX + 15.0f;
 
-            struct KnobLayout {
-                float x, y;
-                std::string label;
-                int paramId;
-            };
-
-            KnobLayout knobLayouts[] = {
-                {leftKnobX, 285, "LVL", DECAPyramid::LEVEL_PARAM_1 + i * 7},
-                {rightKnobX, 285, "FLT", DECAPyramid::FILTER_PARAM_1 + i * 7},
-                {leftKnobX, 315, "SDA", DECAPyramid::SENDA_PARAM_1 + i * 7},
-                {rightKnobX, 315, "SDB", DECAPyramid::SENDB_PARAM_1 + i * 7}
-            };
-
-            for (auto& knob : knobLayouts) {
-                addChild(new TechnoEnhancedTextLabel(Vec(knob.x - 15, knob.y - 10), Vec(30, 10), knob.label, 8.f, nvgRGB(255, 255, 255), true));
-                addParam(createParamCentered<RoundBlackKnob>(Vec(knob.x, knob.y), module, knob.paramId));
-            }
+            // Knobs without labels
+            addParam(createParamCentered<RoundBlackKnob>(Vec(leftKnobX, 285), module, DECAPyramid::LEVEL_PARAM_1 + i * 7));
+            addParam(createParamCentered<RoundBlackKnob>(Vec(rightKnobX, 285), module, DECAPyramid::FILTER_PARAM_1 + i * 7));
+            addParam(createParamCentered<RoundBlackKnob>(Vec(leftKnobX, 315), module, DECAPyramid::SENDA_PARAM_1 + i * 7));
+            addParam(createParamCentered<RoundBlackKnob>(Vec(rightKnobX, 315), module, DECAPyramid::SENDB_PARAM_1 + i * 7));
 
             DECAPyramid3DDisplay* display3D = new DECAPyramid3DDisplay();
             display3D->box.pos = Vec(baseX - 30, 330);
@@ -852,43 +787,21 @@ box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
             }
         }
 
-        addChild(new TechnoEnhancedTextLabel(Vec(478, 285), Vec(30, 10), "AUX A", 8.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(478, 315), Vec(30, 10), "AUX B", 8.f, nvgRGB(255, 255, 255), true));
-
         DECAPyramidMasterDisplay* masterDisplay = new DECAPyramidMasterDisplay();
         masterDisplay->box.pos = Vec(490, 145);
         masterDisplay->module = module;
         masterDisplay->moduleWidget = this;
         addChild(masterDisplay);
 
-        // Add seven new knobs above the 3D display, aligned with outputs below
-        // Top row: RTN A/B controls
-        addChild(new TechnoEnhancedTextLabel(Vec(478, 40), Vec(30, 10), "RTN A", 7.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(478, 50), Vec(30, 10), "LVL", 7.f, nvgRGB(255, 255, 255), true));
+        // RTN A/B controls (labels on panel PNG)
         addParam(createParamCentered<RoundBlackKnob>(Vec(493, 75), module, DECAPyramid::RTN_A_LEVEL_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(509, 40), Vec(30, 10), "RTN A", 7.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(509, 50), Vec(30, 10), "FLT", 7.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(524, 75), module, DECAPyramid::RTN_A_FILTER_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(540, 40), Vec(30, 10), "RTN B", 7.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(540, 50), Vec(30, 10), "LVL", 7.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(555, 75), module, DECAPyramid::RTN_B_LEVEL_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(571, 40), Vec(30, 10), "RTN B", 7.f, nvgRGB(255, 255, 255), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(571, 50), Vec(30, 10), "FLT", 7.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(586, 75), module, DECAPyramid::RTN_B_FILTER_PARAM));
 
-        // Bottom row: Output controls, aligned with output jacks below
-        addChild(new TechnoEnhancedTextLabel(Vec(478, 125), Vec(30, 10), "OUTPUT", 7.f, nvgRGB(255, 255, 255), true));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(509, 100), Vec(30, 10), "1-4", 7.f, nvgRGB(255, 255, 255), true));
+        // Output controls (labels on panel PNG)
         addParam(createParamCentered<RoundBlackKnob>(Vec(524, 125), module, DECAPyramid::OUTPUT_1_4_LEVEL_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(540, 100), Vec(30, 10), "5-8", 7.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(555, 125), module, DECAPyramid::OUTPUT_5_8_LEVEL_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(571, 100), Vec(30, 10), "MASTER", 6.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(586, 125), module, DECAPyramid::MASTER_OUTPUT_LEVEL_PARAM));
 
         for (int i = 0; i < 8; i++) {
@@ -899,8 +812,7 @@ box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
     }
 
     void step() override {
-        DECAPyramid* module = getModule<DECAPyramid>();
-ModuleWidget::step();
+        ModuleWidget::step();
     }
 
     void appendContextMenu(Menu* menu) override {

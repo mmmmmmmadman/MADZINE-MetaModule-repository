@@ -1,40 +1,8 @@
 #include "plugin.hpp"
-#include <string>
-#include <sstream>
+#include <cstring>
 
-// Text label widget
-struct SongModeLabel : TransparentWidget {
-    std::string text;
-    float fontSize;
-    NVGcolor color;
-    bool bold;
-
-    SongModeLabel(Vec pos, Vec size, std::string text, float fontSize = 12.f,
-                  NVGcolor color = nvgRGB(255, 255, 255), bool bold = true) {
-        box.pos = pos;
-        box.size = size;
-        this->text = text;
-        this->fontSize = fontSize;
-        this->color = color;
-        this->bold = bold;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgFontSize(args.vg, fontSize);
-        nvgFontFaceId(args.vg, APP->window->uiFont->handle);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, color);
-
-        if (bold) {
-            float offset = 0.3f;
-            nvgText(args.vg, box.size.x / 2.f - offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f + offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f - offset, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f + offset, text.c_str(), NULL);
-        }
-        nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-    }
-};
+// NOTE: SongModeLabel removed for MetaModule compatibility
+// Labels should be part of the panel PNG
 
 // Forward declaration
 struct SongMode;
@@ -161,8 +129,11 @@ struct SongMode : Module {
     };
 
     // Sequence data
-    std::string sequenceText = "12345678";
-    std::vector<int> sequence;  // Parsed sequence (0-7 indices)
+    static constexpr int MAX_SEQUENCE_TEXT = 64;
+    static constexpr int MAX_SEQUENCE = 64;
+    char sequenceText[MAX_SEQUENCE_TEXT] = "12345678";
+    int sequence[MAX_SEQUENCE];  // Parsed sequence (0-7 indices)
+    int sequenceLength = 0;
 
     // Playback state
     int currentSequenceIndex = 0;  // Current position in sequence
@@ -223,12 +194,13 @@ struct SongMode : Module {
     }
 
     void parseSequence() {
-        sequence.clear();
+        sequenceLength = 0;
 
         // Parse character by character - no separator needed
         // Supports: "12345678", "1 2 3", "1,2,3", "1-4" (range)
+        size_t textLen = strlen(sequenceText);
         size_t i = 0;
-        while (i < sequenceText.length()) {
+        while (i < textLen && sequenceLength < MAX_SEQUENCE) {
             char c = sequenceText[i];
 
             // Skip separators (space, comma, tab)
@@ -242,12 +214,12 @@ struct SongMode : Module {
                 int num = c - '0';
 
                 // Check if next char is '-' for range
-                if (i + 2 < sequenceText.length() && sequenceText[i + 1] == '-') {
+                if (i + 2 < textLen && sequenceText[i + 1] == '-') {
                     char endChar = sequenceText[i + 2];
                     if (endChar >= '1' && endChar <= '8') {
                         int endNum = endChar - '0';
-                        for (int j = num; j <= endNum; j++) {
-                            sequence.push_back(j - 1);
+                        for (int j = num; j <= endNum && sequenceLength < MAX_SEQUENCE; j++) {
+                            sequence[sequenceLength++] = j - 1;
                         }
                         i += 3;
                         continue;
@@ -255,15 +227,15 @@ struct SongMode : Module {
                 }
 
                 // Single digit
-                sequence.push_back(num - 1);
+                sequence[sequenceLength++] = num - 1;
             }
             i++;
         }
 
         // Default to all 8 if empty
-        if (sequence.empty()) {
-            for (int i = 0; i < 8; i++) {
-                sequence.push_back(i);
+        if (sequenceLength == 0) {
+            for (int j = 0; j < 8; j++) {
+                sequence[sequenceLength++] = j;
             }
         }
     }
@@ -271,7 +243,7 @@ struct SongMode : Module {
     void onReset() override {
         currentSequenceIndex = 0;
         currentClockCount = 0;
-        activeInput = sequence.empty() ? 0 : sequence[0];
+        activeInput = (sequenceLength == 0) ? 0 : sequence[0];
         for (int i = 0; i < 8; i++) {
             learning[i] = false;
             learnClockCount[i] = 0;
@@ -280,14 +252,18 @@ struct SongMode : Module {
 
     json_t* dataToJson() override {
         json_t* rootJ = json_object();
-json_object_set_new(rootJ, "sequenceText", json_string(sequenceText.c_str()));
+        json_object_set_new(rootJ, "sequenceText", json_string(sequenceText));
         return rootJ;
     }
 
     void dataFromJson(json_t* rootJ) override {
-json_t* seqJ = json_object_get(rootJ, "sequenceText");
+        json_t* seqJ = json_object_get(rootJ, "sequenceText");
         if (seqJ) {
-            sequenceText = json_string_value(seqJ);
+            const char* str = json_string_value(seqJ);
+            if (str) {
+                strncpy(sequenceText, str, MAX_SEQUENCE_TEXT - 1);
+                sequenceText[MAX_SEQUENCE_TEXT - 1] = '\0';
+            }
             parseSequence();
         }
     }
@@ -333,7 +309,7 @@ json_t* seqJ = json_object_get(rootJ, "sequenceText");
             }
 
             // Advance playback
-            if (!sequence.empty()) {
+            if (sequenceLength > 0) {
                 currentClockCount++;
                 int currentLength = (int)params[LENGTH_1_PARAM + activeInput].getValue();
 
@@ -343,7 +319,7 @@ json_t* seqJ = json_object_get(rootJ, "sequenceText");
                     if (currentClockCount >= fadeStartClock && currentClockCount < currentLength) {
                         // Start fade - prepare next input
                         int nextIndex = currentSequenceIndex + 1;
-                        if (nextIndex >= (int)sequence.size()) {
+                        if (nextIndex >= sequenceLength) {
                             nextIndex = 0;
                         }
                         int nextInput = sequence[nextIndex];
@@ -359,7 +335,7 @@ json_t* seqJ = json_object_get(rootJ, "sequenceText");
                     // Move to next in sequence
                     currentClockCount = 0;
                     currentSequenceIndex++;
-                    if (currentSequenceIndex >= (int)sequence.size()) {
+                    if (currentSequenceIndex >= sequenceLength) {
                         currentSequenceIndex = 0;
                     }
                     int newInput = sequence[currentSequenceIndex];
@@ -441,22 +417,16 @@ json_t* seqJ = json_object_get(rootJ, "sequenceText");
 // Implement onChange after SongMode is fully defined
 void SequenceTextField::onChange(const ChangeEvent& e) {
     if (module) {
-        module->sequenceText = getText();
+        std::string txt = getText();
+        strncpy(module->sequenceText, txt.c_str(), SongMode::MAX_SEQUENCE_TEXT - 1);
+        module->sequenceText[SongMode::MAX_SEQUENCE_TEXT - 1] = '\0';
         module->parseSequence();
     }
     LedDisplayTextField::onChange(e);
 }
 
-// White background panel for bottom section
-struct WhiteBottomPanel : TransparentWidget {
-    void draw(const DrawArgs& args) override {
-        // Draw white background from Y=330 to bottom
-        nvgBeginPath(args.vg);
-        nvgRect(args.vg, 0, 330, box.size.x, box.size.y - 330);
-        nvgFillColor(args.vg, nvgRGB(255, 255, 255));
-        nvgFill(args.vg);
-    }
-};
+// NOTE: WhiteBottomPanel removed for MetaModule compatibility
+// Background should be part of the panel PNG
 
 struct SongModeWidget : ModuleWidget {
 SequenceTextField* textField = nullptr;
@@ -464,22 +434,10 @@ SequenceTextField* textField = nullptr;
     SongModeWidget(SongMode* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "SongMode.png")));
-box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-
-        // Add white background panel for bottom section (Y=330 and below)
-        WhiteBottomPanel* whitePanel = new WhiteBottomPanel();
-        whitePanel->box.size = box.size;
-        addChild(whitePanel);
-
-        // Title
-        addChild(new SongModeLabel(Vec(0, 1), Vec(box.size.x, 20), "SONG MODE", 12.f, nvgRGB(255, 200, 0), true));
-        addChild(new SongModeLabel(Vec(0, 13), Vec(box.size.x, 20), "MADZINE", 10.f, nvgRGB(255, 200, 0), false));
+        box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
         // Clock and Reset inputs
-        addChild(new SongModeLabel(Vec(18, 32), Vec(30, 12), "CLK", 8.f, nvgRGB(255, 255, 255), true));
         addInput(createInputCentered<PJ301MPort>(Vec(33, 53), module, SongMode::CLOCK_INPUT));
-
-        addChild(new SongModeLabel(Vec(62, 32), Vec(30, 12), "RST", 8.f, nvgRGB(255, 255, 255), true));
         addInput(createInputCentered<PJ301MPort>(Vec(77, 53), module, SongMode::RESET_INPUT));
 
         // Sequence text field (10px above first input row)
@@ -500,9 +458,6 @@ box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
         for (int i = 0; i < 8; i++) {
             float y = startY + i * rowHeight;
 
-            // Row number
-            addChild(new SongModeLabel(Vec(0, y - 2), Vec(14, 12), std::to_string(i + 1), 9.f, nvgRGB(255, 200, 0), true));
-
             // Input jack
             addInput(createInputCentered<PJ301MPort>(Vec(22, y + 6), module, SongMode::IN_1_INPUT + i));
 
@@ -521,13 +476,6 @@ box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
         }
 
         // Bottom section: Fade knobs and main output
-        // Labels: top row (Fade, Switch), bottom row (Clock, Time, Out)
-        addChild(new SongModeLabel(Vec(14, 332), Vec(44, 12), "Fade", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new SongModeLabel(Vec(78, 332), Vec(44, 12), "Switch", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new SongModeLabel(Vec(0, 367), Vec(44, 12), "Clock", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new SongModeLabel(Vec(28, 367), Vec(44, 12), "Time", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new SongModeLabel(Vec(78, 367), Vec(44, 12), "Out", 10.f, nvgRGB(255, 133, 133), true));
-
         // Fade Clock knob (X=22, same as input jacks)
         addParam(createParamCentered<RoundSmallBlackKnob>(Vec(22, 355), module, SongMode::FADE_CLOCK_PARAM));
 
@@ -541,8 +489,8 @@ box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
     void step() override {
         SongMode* module = dynamic_cast<SongMode*>(this->module);
         if (module) {
-// Sync text field with module
-            if (textField && textField->getText() != module->sequenceText) {
+            // Sync text field with module
+            if (textField && textField->getText() != std::string(module->sequenceText)) {
                 textField->setText(module->sequenceText);
             }
         }

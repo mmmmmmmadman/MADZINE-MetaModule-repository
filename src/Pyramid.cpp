@@ -242,42 +242,8 @@ json_t* sendJ = json_object_get(rootJ, "sendPreLevel");
     }
 };
 
-struct TechnoEnhancedTextLabel : TransparentWidget {
-    std::string text;
-    float fontSize;
-    NVGcolor color;
-    bool bold;
-
-    TechnoEnhancedTextLabel(Vec pos, Vec size, std::string text, float fontSize = 12.f,
-                      NVGcolor color = nvgRGB(255, 255, 255), bool bold = true) {
-        box.pos = pos;
-        box.size = size;
-        this->text = text;
-        this->fontSize = fontSize;
-        this->color = color;
-        this->bold = bold;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgFontSize(args.vg, fontSize);
-        nvgFontFaceId(args.vg, APP->window->uiFont->handle);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, color);
-
-        if (bold) {
-            float offset = 0.3f;
-            nvgText(args.vg, box.size.x / 2.f - offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f + offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f - offset, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f + offset, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-        } else {
-            nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-        }
-    }
-};
-
-// 使用 RoundBlackKnob 來保持 26x26 尺寸
+// NOTE: TechnoEnhancedTextLabel removed for MetaModule compatibility
+// Labels should be part of the panel PNG
 
 struct PyramidGraphicWidget : Widget {
     PyramidGraphicWidget(Vec pos, Vec size) {
@@ -528,19 +494,16 @@ struct Pyramid3DDisplay : LedDisplay {
 };
 
 struct PyramidWidget : ModuleWidget {
-PyramidWidget(Pyramid* module) {
+    PyramidWidget(Pyramid* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "Pyramid.png")));
-box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
+        box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
-        addChild(new TechnoEnhancedTextLabel(Vec(0, 1), Vec(box.size.x, 20), "Pyramid", 12.f, nvgRGB(255, 200, 0), true));
-        addChild(new TechnoEnhancedTextLabel(Vec(0, 13), Vec(box.size.x, 20), "MADZINE", 10.f, nvgRGB(255, 200, 0), false));
+        // NOTE: All TechnoEnhancedTextLabel removed - labels are on panel PNG
 
         addChild(new PyramidGraphicWidget(Vec(75, 50), Vec(38, 38)));
 
-        addChild(new TechnoEnhancedTextLabel(Vec(17-15, 47), Vec(30, 10), "LEVEL", 8.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(17, 70), module, Pyramid::LEVEL_PARAM));
-        addChild(new TechnoEnhancedTextLabel(Vec(44-15, 47), Vec(30, 10), "INPUT", 8.f, nvgRGB(255, 255, 255), true));
         addInput(createInputCentered<PJ301MPort>(Vec(44, 70), module, Pyramid::AUDIO_INPUT));
 
         Pyramid3DDisplay* display3D = new Pyramid3DDisplay();
@@ -549,24 +512,16 @@ box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
         display3D->moduleWidget = this;
         addChild(display3D);
 
-        addChild(new TechnoEnhancedTextLabel(Vec(7, 220), Vec(50, 10), "X", 32.f, nvgRGB(160, 160, 160), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(17, 240), module, Pyramid::X_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(7, 255), Vec(50, 10), "Y", 32.f, nvgRGB(160, 160, 160), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(17, 275), module, Pyramid::Y_PARAM));
-
-        addChild(new TechnoEnhancedTextLabel(Vec(7, 290), Vec(50, 10), "Z", 32.f, nvgRGB(160, 160, 160), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(17, 310), module, Pyramid::Z_PARAM));
 
-        addChild(new TechnoEnhancedTextLabel(Vec(75-15, 220), Vec(30, 10), "SEND", 8.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(75, 242), module, Pyramid::SEND_PARAM));
         addOutput(createOutputCentered<PJ301MPort>(Vec(75, 270), module, Pyramid::SEND_OUTPUT));
 
-        addChild(new TechnoEnhancedTextLabel(Vec(102-15, 220), Vec(30, 10), "RTN", 8.f, nvgRGB(255, 255, 255), true));
         addInput(createInputCentered<PJ301MPort>(Vec(102, 242), module, Pyramid::RETURN_L_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(102, 270), module, Pyramid::RETURN_R_INPUT));
 
-        addChild(new TechnoEnhancedTextLabel(Vec(65, 290), Vec(50, 10), "FILTER", 8.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundBlackKnob>(Vec(75, 312), module, Pyramid::FILTER_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(102, 312), module, Pyramid::FILTER_CV_INPUT));
 
@@ -574,7 +529,7 @@ box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
         addInput(createInputCentered<PJ301MPort>(Vec(44, 275), module, Pyramid::Y_CV_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(44, 310), module, Pyramid::Z_CV_INPUT));
 
-addOutput(createOutputCentered<PJ301MPort>(Vec(13, 343), module, Pyramid::FL_UPPER_OUTPUT));
+        addOutput(createOutputCentered<PJ301MPort>(Vec(13, 343), module, Pyramid::FL_UPPER_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(44, 343), module, Pyramid::FR_UPPER_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(75, 343), module, Pyramid::BL_UPPER_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(104, 343), module, Pyramid::BR_UPPER_OUTPUT));

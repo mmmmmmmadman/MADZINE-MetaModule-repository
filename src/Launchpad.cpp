@@ -15,7 +15,8 @@ namespace LaunchpadColors {
 }
 
 // Maximum recording length in samples (10 seconds at 48kHz)
-static const int MAX_BUFFER_SIZE = 48000 * 10;
+static constexpr int MAX_BUFFER_SIZE = 48000 * 10;
+static constexpr int MAX_WAVEFORM_WIDTH = 64;  // Max display width for waveform cache
 
 // Cell state enum
 enum CellState {
@@ -27,9 +28,9 @@ enum CellState {
     CELL_STOP_QUEUED  // Waiting for quantize boundary to stop
 };
 
-// Cell data structure
+// Cell data structure - MetaModule compatible (fixed arrays, no std::vector)
 struct CellData {
-    std::vector<float> buffer;
+    float buffer[MAX_BUFFER_SIZE];
     int recordedLength = 0;  // Actual recorded samples
     int loopClocks = 0;      // Loop length in clocks
     CellState state = CELL_EMPTY;
@@ -37,41 +38,47 @@ struct CellData {
     int recordPosition = 0;
 
     // Waveform cache for display (downsampled)
-    std::vector<float> waveformCache;
+    float waveformCache[MAX_WAVEFORM_WIDTH];
+    int waveformCacheSize = 0;
     bool waveformDirty = true;
 
     CellData() {
-        buffer.reserve(MAX_BUFFER_SIZE);
+        memset(buffer, 0, sizeof(buffer));
+        memset(waveformCache, 0, sizeof(waveformCache));
     }
 
     void clear() {
-        buffer.clear();
+        memset(buffer, 0, sizeof(buffer));
         recordedLength = 0;
         loopClocks = 0;
         state = CELL_EMPTY;
         playPosition = 0;
         recordPosition = 0;
-        waveformCache.clear();
+        memset(waveformCache, 0, sizeof(waveformCache));
+        waveformCacheSize = 0;
         waveformDirty = true;
     }
 
     void updateWaveformCache(int displayWidth) {
-        if (!waveformDirty && (int)waveformCache.size() == displayWidth) return;
+        if (displayWidth > MAX_WAVEFORM_WIDTH) displayWidth = MAX_WAVEFORM_WIDTH;
+        if (!waveformDirty && waveformCacheSize == displayWidth) return;
 
-        waveformCache.resize(displayWidth);
+        waveformCacheSize = displayWidth;
 
         // Use recordPosition during recording, recordedLength otherwise
         int length = (state == CELL_RECORDING) ? recordPosition : recordedLength;
 
         if (length == 0) {
-            std::fill(waveformCache.begin(), waveformCache.end(), 0.f);
+            for (int i = 0; i < displayWidth; i++) {
+                waveformCache[i] = 0.f;
+            }
             return;
         }
 
         // Store actual waveform samples (not envelope)
         for (int i = 0; i < displayWidth; i++) {
             int sampleIndex = i * length / displayWidth;
-            if (sampleIndex < (int)buffer.size()) {
+            if (sampleIndex < recordedLength || (state == CELL_RECORDING && sampleIndex < recordPosition)) {
                 waveformCache[i] = buffer[sampleIndex];
             } else {
                 waveformCache[i] = 0.f;
@@ -84,37 +91,8 @@ struct CellData {
 // Forward declaration
 struct Launchpad;
 
-// Text label widget
-struct LaunchpadLabel : TransparentWidget {
-    std::string text;
-    float fontSize;
-    NVGcolor color;
-    bool bold;
-
-    LaunchpadLabel(Vec pos, Vec size, std::string text, float fontSize = 10.f,
-                   NVGcolor color = nvgRGB(255, 255, 255), bool bold = true) {
-        box.pos = pos;
-        box.size = size;
-        this->text = text;
-        this->fontSize = fontSize;
-        this->color = color;
-        this->bold = bold;
-    }
-
-    void draw(const DrawArgs &args) override {
-        nvgFontSize(args.vg, fontSize);
-        nvgFontFaceId(args.vg, APP->window->uiFont->handle);
-        nvgTextAlign(args.vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-        nvgFillColor(args.vg, color);
-
-        if (bold) {
-            float offset = 0.3f;
-            nvgText(args.vg, box.size.x / 2.f - offset, box.size.y / 2.f, text.c_str(), NULL);
-            nvgText(args.vg, box.size.x / 2.f + offset, box.size.y / 2.f, text.c_str(), NULL);
-        }
-        nvgText(args.vg, box.size.x / 2.f, box.size.y / 2.f, text.c_str(), NULL);
-    }
-};
+// NOTE: LaunchpadLabel removed for MetaModule compatibility
+// Labels should be part of the panel PNG
 
 // Cell widget for grid display
 struct CellWidget : OpaqueWidget {
@@ -301,8 +279,7 @@ struct Launchpad : Module {
         }
 
         CellData& cell = cells[row][col];
-        cell.buffer.clear();
-        cell.buffer.resize(MAX_BUFFER_SIZE, 0.f);
+        memset(cell.buffer, 0, sizeof(cell.buffer));
         cell.recordPosition = 0;
         cell.recordedLength = 0;
         cell.state = CELL_RECORDING;
@@ -581,8 +558,11 @@ json_t* cellsJ = json_object_get(rootJ, "cells");
 
                     json_t* bufferJ = json_object_get(cellJ, "buffer");
                     if (bufferJ && cell.recordedLength > 0) {
-                        cell.buffer.resize(MAX_BUFFER_SIZE, 0.f);
-                        for (int i = 0; i < cell.recordedLength && i < (int)json_array_size(bufferJ); i++) {
+                        memset(cell.buffer, 0, sizeof(cell.buffer));
+                        int loadCount = cell.recordedLength;
+                        if (loadCount > MAX_BUFFER_SIZE) loadCount = MAX_BUFFER_SIZE;
+                        if (loadCount > (int)json_array_size(bufferJ)) loadCount = (int)json_array_size(bufferJ);
+                        for (int i = 0; i < loadCount; i++) {
                             cell.buffer[i] = json_real_value(json_array_get(bufferJ, i));
                         }
                         cell.state = CELL_HAS_CONTENT;
@@ -672,7 +652,7 @@ void CellWidget::draw(const DrawArgs& args) {
 
     // Draw loop length indicator
     if (module && module->cells[row][col].loopClocks > 0) {
-        char buf[8];
+        char buf[16];
         snprintf(buf, sizeof(buf), "%d", module->cells[row][col].loopClocks);
 
         nvgFontSize(args.vg, 9);
@@ -763,45 +743,27 @@ void CellWidget::drawWaveform(const DrawArgs& args, CellData& cell) {
     }
 }
 
-// White background panel for bottom section
-struct WhiteBottomPanel40HP : TransparentWidget {
-    void draw(const DrawArgs& args) override {
-        nvgBeginPath(args.vg);
-        nvgRect(args.vg, 0, 330, box.size.x, box.size.y - 330);
-        nvgFillColor(args.vg, nvgRGB(255, 255, 255));
-        nvgFill(args.vg);
-    }
-};
+// NOTE: WhiteBottomPanel40HP removed for MetaModule compatibility
+// Background should be part of the panel PNG
 
 struct LaunchpadWidget : ModuleWidget {
-std::vector<CellWidget*> cellWidgets;
+    // Fixed array instead of std::vector for MetaModule compatibility
+    CellWidget* cellWidgets[64];  // 8x8 = 64 cells
+    int cellWidgetCount = 0;
 
     LaunchpadWidget(Launchpad* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "Launchpad.png")));
-box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
+        box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
-        // White bottom panel
-        WhiteBottomPanel40HP* whitePanel = new WhiteBottomPanel40HP();
-        whitePanel->box.size = box.size;
-        addChild(whitePanel);
+        // NOTE: Labels and white panel removed for MetaModule - use panel PNG
 
-        // Title - doubled size
-        addChild(new LaunchpadLabel(Vec(0, 1), Vec(200, 30), "LAUNCHPAD", 24.f, nvgRGB(255, 200, 0), true));
-        addChild(new LaunchpadLabel(Vec(0, 22), Vec(200, 25), "MADZINE", 20.f, nvgRGB(255, 200, 0), false));
-
-        // Clock, Reset, Quantize - upper right, labels up 2px
-        addChild(new LaunchpadLabel(Vec(455, 26), Vec(50, 12), "Clock", 10.f, nvgRGB(255, 255, 255), true));
+        // Clock, Reset, Quantize inputs
         addInput(createInputCentered<PJ301MPort>(Vec(480, 50), module, Launchpad::CLOCK_INPUT));
-
-        addChild(new LaunchpadLabel(Vec(500, 26), Vec(50, 12), "Reset", 10.f, nvgRGB(255, 255, 255), true));
         addInput(createInputCentered<PJ301MPort>(Vec(525, 50), module, Launchpad::RESET_INPUT));
-
-        addChild(new LaunchpadLabel(Vec(540, 26), Vec(60, 12), "Quantize", 10.f, nvgRGB(255, 255, 255), true));
         addParam(createParamCentered<RoundSmallBlackKnob>(Vec(570, 50), module, Launchpad::QUANTIZE_PARAM));
 
-        // Stop All button (same Y as scene buttons, label up 7px total)
-        addChild(new LaunchpadLabel(Vec(2, 48), Vec(50, 12), "Stop All", 10.f, nvgRGB(255, 255, 255), true));
+        // Stop All button
         addParam(createParamCentered<VCVButton>(Vec(27, 70), module, Launchpad::STOP_ALL_PARAM));
 
         // Scene buttons (aligned with cells)
@@ -811,14 +773,6 @@ box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
             float x = cellStartX + i * cellSpacing;
             addParam(createParamCentered<VCVButton>(Vec(x, 70), module, Launchpad::SCENE_1_PARAM + i));
         }
-
-        // Column labels - Pan/Level moved left 3px total
-        addChild(new LaunchpadLabel(Vec(2, 82), Vec(30, 12), "IN", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new LaunchpadLabel(Vec(410, 79), Vec(45, 12), "Send A", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new LaunchpadLabel(Vec(448, 79), Vec(45, 12), "Send B", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new LaunchpadLabel(Vec(488, 79), Vec(35, 12), "Pan", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new LaunchpadLabel(Vec(521, 79), Vec(45, 12), "Level", 10.f, nvgRGB(255, 255, 255), true));
-        addChild(new LaunchpadLabel(Vec(557, 79), Vec(40, 12), "OUT", 10.f, nvgRGB(255, 255, 255), true));
 
         // 8 rows
         float rowStartY = 100;
@@ -837,54 +791,41 @@ box.size = Vec(40 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
                 cellWidget->row = r;
                 cellWidget->col = c;
                 cellWidget->box.pos = Vec(cellStartX + c * cellSpacing - 20, y - 11);
-                cellWidget->box.size = Vec(40, 28);  // Adjusted for row spacing
+                cellWidget->box.size = Vec(40, 28);
                 addChild(cellWidget);
-                cellWidgets.push_back(cellWidget);
+                if (cellWidgetCount < 64) {
+                    cellWidgets[cellWidgetCount++] = cellWidget;
+                }
             }
 
-            // Per-row knobs - moved left and up 3px
+            // Per-row knobs
             addParam(createParamCentered<RoundSmallBlackKnob>(Vec(430, y + 3), module, Launchpad::SEND_A_1_PARAM + r * 4));
             addParam(createParamCentered<RoundSmallBlackKnob>(Vec(468, y + 3), module, Launchpad::SEND_B_1_PARAM + r * 4));
             addParam(createParamCentered<RoundSmallBlackKnob>(Vec(506, y + 3), module, Launchpad::PAN_1_PARAM + r * 4));
             addParam(createParamCentered<RoundSmallBlackKnob>(Vec(544, y + 3), module, Launchpad::LEVEL_1_PARAM + r * 4));
 
-            // Row output - moved up 3px
+            // Row output
             addOutput(createOutputCentered<PJ301MPort>(Vec(577, y + 3), module, Launchpad::ROW_1_OUTPUT + r));
         }
 
-        // Bottom section (Y=330+)
+        // Bottom section - Send/Return/Mix outputs and inputs
         // Send A
-        addChild(new LaunchpadLabel(Vec(20, 332), Vec(60, 12), "Send A", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(20, 370), Vec(30, 12), "L", 9.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(50, 370), Vec(30, 12), "R", 9.f, nvgRGB(255, 133, 133), true));
         addOutput(createOutputCentered<PJ301MPort>(Vec(35, 355), module, Launchpad::SEND_A_L_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(65, 355), module, Launchpad::SEND_A_R_OUTPUT));
 
         // Return A
-        addChild(new LaunchpadLabel(Vec(100, 332), Vec(60, 12), "Return A", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(100, 370), Vec(30, 12), "L", 9.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(130, 370), Vec(30, 12), "R", 9.f, nvgRGB(255, 133, 133), true));
         addInput(createInputCentered<PJ301MPort>(Vec(115, 355), module, Launchpad::RETURN_A_L_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(145, 355), module, Launchpad::RETURN_A_R_INPUT));
 
         // Send B
-        addChild(new LaunchpadLabel(Vec(200, 332), Vec(60, 12), "Send B", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(200, 370), Vec(30, 12), "L", 9.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(230, 370), Vec(30, 12), "R", 9.f, nvgRGB(255, 133, 133), true));
         addOutput(createOutputCentered<PJ301MPort>(Vec(215, 355), module, Launchpad::SEND_B_L_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(245, 355), module, Launchpad::SEND_B_R_OUTPUT));
 
         // Return B
-        addChild(new LaunchpadLabel(Vec(280, 332), Vec(60, 12), "Return B", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(280, 370), Vec(30, 12), "L", 9.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(310, 370), Vec(30, 12), "R", 9.f, nvgRGB(255, 133, 133), true));
         addInput(createInputCentered<PJ301MPort>(Vec(295, 355), module, Launchpad::RETURN_B_L_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(325, 355), module, Launchpad::RETURN_B_R_INPUT));
 
         // Mix
-        addChild(new LaunchpadLabel(Vec(520, 332), Vec(60, 12), "Mix", 10.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(520, 370), Vec(30, 12), "L", 9.f, nvgRGB(255, 133, 133), true));
-        addChild(new LaunchpadLabel(Vec(550, 370), Vec(30, 12), "R", 9.f, nvgRGB(255, 133, 133), true));
         addOutput(createOutputCentered<PJ301MPort>(Vec(535, 355), module, Launchpad::MIX_L_OUTPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(565, 355), module, Launchpad::MIX_R_OUTPUT));
     }
