@@ -130,15 +130,15 @@ struct ReverbProcessor {
         float combOut = 0.0f;
         
         if (isLeftChannel) {
-            int roomOffset1 = (int)(roomSize * 400 + chaosOutput * 50);
-            int roomOffset2 = (int)(roomSize * 350 + chaosOutput * 40);
-            int roomOffset3 = (int)(roomSize * 300 + chaosOutput * 60);
-            int roomOffset4 = (int)(roomSize * 500 + chaosOutput * 70);
-            
-            int readIdx1 = (combIndex1 - roomOffset1 + COMB_1_SIZE) % COMB_1_SIZE;
-            int readIdx2 = (combIndex2 - roomOffset2 + COMB_2_SIZE) % COMB_2_SIZE;
-            int readIdx3 = (combIndex3 - roomOffset3 + COMB_3_SIZE) % COMB_3_SIZE;
-            int readIdx4 = (combIndex4 - roomOffset4 + COMB_4_SIZE) % COMB_4_SIZE;
+            int roomOffset1 = std::max(0, (int)(roomSize * 400 + chaosOutput * 50));
+            int roomOffset2 = std::max(0, (int)(roomSize * 350 + chaosOutput * 40));
+            int roomOffset3 = std::max(0, (int)(roomSize * 300 + chaosOutput * 60));
+            int roomOffset4 = std::max(0, (int)(roomSize * 500 + chaosOutput * 70));
+
+            int readIdx1 = ((combIndex1 - roomOffset1) % COMB_1_SIZE + COMB_1_SIZE) % COMB_1_SIZE;
+            int readIdx2 = ((combIndex2 - roomOffset2) % COMB_2_SIZE + COMB_2_SIZE) % COMB_2_SIZE;
+            int readIdx3 = ((combIndex3 - roomOffset3) % COMB_3_SIZE + COMB_3_SIZE) % COMB_3_SIZE;
+            int readIdx4 = ((combIndex4 - roomOffset4) % COMB_4_SIZE + COMB_4_SIZE) % COMB_4_SIZE;
             
             float roomInput = input * roomScale;
             combOut += processComb(roomInput, combBuffer1, COMB_1_SIZE, combIndex1, feedback, combLp1, dampingCoeff);
@@ -149,15 +149,15 @@ struct ReverbProcessor {
             combOut += combBuffer1[readIdx1] * roomSize * 0.15f;
             combOut += combBuffer2[readIdx2] * roomSize * 0.12f;
         } else {
-            int roomOffset5 = (int)(roomSize * 380 + chaosOutput * 45);
-            int roomOffset6 = (int)(roomSize * 420 + chaosOutput * 55);
-            int roomOffset7 = (int)(roomSize * 280 + chaosOutput * 35);
-            int roomOffset8 = (int)(roomSize * 460 + chaosOutput * 65);
-            
-            int readIdx5 = (combIndex5 - roomOffset5 + COMB_5_SIZE) % COMB_5_SIZE;
-            int readIdx6 = (combIndex6 - roomOffset6 + COMB_6_SIZE) % COMB_6_SIZE;
-            int readIdx7 = (combIndex7 - roomOffset7 + COMB_7_SIZE) % COMB_7_SIZE;
-            int readIdx8 = (combIndex8 - roomOffset8 + COMB_8_SIZE) % COMB_8_SIZE;
+            int roomOffset5 = std::max(0, (int)(roomSize * 380 + chaosOutput * 45));
+            int roomOffset6 = std::max(0, (int)(roomSize * 420 + chaosOutput * 55));
+            int roomOffset7 = std::max(0, (int)(roomSize * 280 + chaosOutput * 35));
+            int roomOffset8 = std::max(0, (int)(roomSize * 460 + chaosOutput * 65));
+
+            int readIdx5 = ((combIndex5 - roomOffset5) % COMB_5_SIZE + COMB_5_SIZE) % COMB_5_SIZE;
+            int readIdx6 = ((combIndex6 - roomOffset6) % COMB_6_SIZE + COMB_6_SIZE) % COMB_6_SIZE;
+            int readIdx7 = ((combIndex7 - roomOffset7) % COMB_7_SIZE + COMB_7_SIZE) % COMB_7_SIZE;
+            int readIdx8 = ((combIndex8 - roomOffset8) % COMB_8_SIZE + COMB_8_SIZE) % COMB_8_SIZE;
             
             float roomInput = input * roomScale;
             combOut += processComb(roomInput, combBuffer5, COMB_5_SIZE, combIndex5, feedback, combLp5, dampingCoeff);

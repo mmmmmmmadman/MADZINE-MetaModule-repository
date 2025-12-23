@@ -202,18 +202,18 @@ struct TWNC2 : Module {
         configInput(EXTERNAL_INPUT, "External Input");
         
         configParam(KICK_VOLUME_PARAM, 0.0f, 1.0f, 1.0f, "Kick Volume");
-        configParam(KICK_FREQ_PARAM, std::log2(24.0f), std::log2(500.0f), std::log2(60.0f), "Kick Frequency", " Hz", 2.f);
-        configParam(KICK_FM_AMT_PARAM, 0.0f, 1.0f, 0.5f, "Kick FM Amount");
-        configParam(KICK_PUNCH_PARAM, 0.0f, 1.0f, 0.5f, "Kick Punch Amount");
-        
+        configParam(KICK_FREQ_PARAM, std::log2(24.0f), std::log2(500.0f), 4.5849623680114746f, "Kick Frequency", " Hz", 2.f);
+        configParam(KICK_FM_AMT_PARAM, 0.0f, 1.0f, 0.15700007975101471f, "Kick FM Amount");
+        configParam(KICK_PUNCH_PARAM, 0.0f, 1.0f, 0.16800001263618469f, "Kick Punch Amount");
+
         configParam(SNARE_VOLUME_PARAM, 0.0f, 1.0f, 1.0f, "Snare Volume");
-        configParam(SNARE_FREQ_PARAM, std::log2(100.0f), std::log2(300.0f), std::log2(200.0f), "Snare Frequency", " Hz", 2.f);
-        configParam(SNARE_NOISE_TONE_PARAM, 0.0f, 1.0f, 0.5f, "Snare Noise Tone");
-        configParam(SNARE_NOISE_MIX_PARAM, 0.0f, 1.0f, 0.5f, "Snare Noise Mix");
-        
+        configParam(SNARE_FREQ_PARAM, std::log2(100.0f), std::log2(300.0f), 6.9100170135498047f, "Snare Frequency", " Hz", 2.f);
+        configParam(SNARE_NOISE_TONE_PARAM, 0.0f, 1.0f, 0.71700006723403931f, "Snare Noise Tone");
+        configParam(SNARE_NOISE_MIX_PARAM, 0.0f, 1.0f, 0.28799989819526672f, "Snare Noise Mix");
+
         configParam(HATS_VOLUME_PARAM, 0.0f, 1.0f, 1.0f, "Hats Volume");
-        configParam(HATS_TONE_PARAM, 0.0f, 1.0f, 0.5f, "Hats Tone");
-        configParam(HATS_DECAY_PARAM, 0.0f, 1.0f, 0.5f, "Hats Decay");
+        configParam(HATS_TONE_PARAM, 0.0f, 1.0f, 0.9649999737739563f, "Hats Tone");
+        configParam(HATS_DECAY_PARAM, 0.0f, 1.0f, 0.0f, "Hats Decay");
         configParam(DUCK_PARAM, 0.0f, 1.0f, 0.0f, "Duck Amount");
         
         configOutput(KICK_OUTPUT, "Kick Audio");

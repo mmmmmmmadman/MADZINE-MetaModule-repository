@@ -415,16 +415,16 @@ struct TWNC : Module {
         configInput(HATS_FREQ_CV_INPUT, "Hats Frequency CV");
         configInput(HATS_DECAY_CV_INPUT, "Hats Decay CV");
         
-        configParam(GLOBAL_LENGTH_PARAM, 1.0f, 32.0f, 16.0f, "Global Length");
+        configParam(GLOBAL_LENGTH_PARAM, 1.0f, 32.0f, 32.0f, "Global Length");
         getParamQuantity(GLOBAL_LENGTH_PARAM)->snapEnabled = true;
-        
+
         configParam(MANUAL_RESET_PARAM, 0.0f, 1.0f, 0.0f, "Manual Reset");
-        
-        configParam(TRACK1_FILL_PARAM, 0.0f, 100.0f, 25.0f, "Track 1 Fill", "%");
-        configParam(TRACK1_FREQ_PARAM, std::log2(kFreqKnobMin), std::log2(kFreqKnobMax), std::log2(1000.0f), "Track 1 Frequency", " Hz", 2.f);
-        configParam(TRACK1_FM_AMT_PARAM, 0.0f, 1.0f, 0.5f, "Track 1 FM Amount");
-        configParam(TRACK1_NOISE_MIX_PARAM, 0.0f, 1.0f, 0.5f, "Track 1 Noise Mix");
-        
+
+        configParam(TRACK1_FILL_PARAM, 0.0f, 100.0f, 84.500015258789062f, "Track 1 Fill", "%");
+        configParam(TRACK1_FREQ_PARAM, std::log2(kFreqKnobMin), std::log2(kFreqKnobMax), 5.1989173889160156f, "Track 1 Frequency", " Hz", 2.f);
+        configParam(TRACK1_FM_AMT_PARAM, 0.0f, 1.0f, 0.65000015497207642f, "Track 1 FM Amount");
+        configParam(TRACK1_NOISE_MIX_PARAM, 0.0f, 1.0f, 0.15200015902519226f, "Track 1 Noise Mix");
+
         configParam(VCA_SHIFT_PARAM, 1.0f, 7.0f, 1.0f, "VCA Shift");
         getParamQuantity(VCA_SHIFT_PARAM)->snapEnabled = true;
         delete paramQuantities[VCA_SHIFT_PARAM];
@@ -436,13 +436,13 @@ struct TWNC : Module {
         paramQuantities[VCA_SHIFT_PARAM]->defaultValue = 1.0f;
         paramQuantities[VCA_SHIFT_PARAM]->name = "VCA Shift";
         paramQuantities[VCA_SHIFT_PARAM]->snapEnabled = true;
-        
-        configParam(VCA_DECAY_PARAM, 0.01f, 2.0f, 0.3f, "VCA Decay", " s");
-        
-        configParam(TRACK1_DECAY_PARAM, 0.01f, 2.0f, 0.3f, "Track 1 Decay", " s");
-        configParam(TRACK1_SHAPE_PARAM, 0.0f, 0.99f, 0.5f, "Track 1 Shape");
-        
-        configParam(TRACK2_SHIFT_PARAM, 0.0f, 7.0f, 0.0f, "Track 2 Shift");
+
+        configParam(VCA_DECAY_PARAM, 0.01f, 2.0f, 0.39605924487113953f, "VCA Decay", " s");
+
+        configParam(TRACK1_DECAY_PARAM, 0.01f, 2.0f, 0.72042977809906006f, "Track 1 Decay", " s");
+        configParam(TRACK1_SHAPE_PARAM, 0.0f, 0.99f, 0.0f, "Track 1 Shape");
+
+        configParam(TRACK2_SHIFT_PARAM, 0.0f, 7.0f, 2.0f, "Track 2 Shift");
         getParamQuantity(TRACK2_SHIFT_PARAM)->snapEnabled = true;
         configParam(TRACK2_FILL_PARAM, 0.0f, 100.0f, 25.0f, "Track 2 Fill", "%");
         configParam(TRACK2_DIVMULT_PARAM, 0.0f, 4.0f, 1.0f, "Track 2 Div/Mult");
@@ -453,14 +453,14 @@ struct TWNC : Module {
         paramQuantities[TRACK2_DIVMULT_PARAM]->paramId = TRACK2_DIVMULT_PARAM;
         paramQuantities[TRACK2_DIVMULT_PARAM]->minValue = 0.0f;
         paramQuantities[TRACK2_DIVMULT_PARAM]->maxValue = 4.0f;
-        paramQuantities[TRACK2_DIVMULT_PARAM]->defaultValue = 0.0f;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->defaultValue = 1.0f;
         paramQuantities[TRACK2_DIVMULT_PARAM]->name = "Track 2 Div/Mult";
         paramQuantities[TRACK2_DIVMULT_PARAM]->snapEnabled = true;
-        
-        configParam(TRACK2_FREQ_PARAM, std::log2(kFreqKnobMin), std::log2(kFreqKnobMax), std::log2(800.0f), "Track 2 Frequency", " Hz", 2.f);
-        configParam(TRACK2_DECAY_PARAM, 0.01f, 2.0f, 0.3f, "Track 2 Decay", " s");
-        configParam(TRACK2_SHAPE_PARAM, 0.0f, 0.99f, 0.5f, "Track 2 Shape");
-        configParam(TRACK2_NOISE_FM_PARAM, 0.0f, 1.0f, 0.0f, "Track 2 Noise FM");
+
+        configParam(TRACK2_FREQ_PARAM, std::log2(kFreqKnobMin), std::log2(kFreqKnobMax), 14.287712097167969f, "Track 2 Frequency", " Hz", 2.f);
+        configParam(TRACK2_DECAY_PARAM, 0.01f, 2.0f, 0.13139002025127411f, "Track 2 Decay", " s");
+        configParam(TRACK2_SHAPE_PARAM, 0.0f, 0.99f, 0.055439997464418411f, "Track 2 Shape");
+        configParam(TRACK2_NOISE_FM_PARAM, 0.0f, 1.0f, 0.71399968862533569f, "Track 2 Noise FM");
         
         configOutput(TRACK1_OUTPUT, "Track 1 Audio");
         configOutput(TRACK2_OUTPUT, "Track 2 Audio");

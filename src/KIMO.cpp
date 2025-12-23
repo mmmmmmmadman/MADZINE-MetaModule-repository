@@ -202,6 +202,7 @@ struct KIMO : Module {
         FM_CV_INPUT,
         PUNCH_CV_INPUT,
         DECAY_CV_INPUT,
+        FILL_CV_INPUT,
         INPUTS_LEN
     };
     enum OutputId {
@@ -294,9 +295,10 @@ struct KIMO : Module {
         configInput(FM_CV_INPUT, "FM CV");
         configInput(PUNCH_CV_INPUT, "Punch CV");
         configInput(DECAY_CV_INPUT, "Decay CV");
-        
-        configParam(FILL_PARAM, 0.0f, 100.0f, 25.0f, "Fill", "%");
-        configParam(ACCENT_PARAM, 1.0f, 7.0f, 1.0f, "Accent");
+        configInput(FILL_CV_INPUT, "Fill CV");
+
+        configParam(FILL_PARAM, 0.0f, 100.0f, 71.20001220703125f, "Fill", "%");
+        configParam(ACCENT_PARAM, 1.0f, 7.0f, 3.0f, "Accent");
         getParamQuantity(ACCENT_PARAM)->snapEnabled = true;
         delete paramQuantities[ACCENT_PARAM];
         paramQuantities[ACCENT_PARAM] = new KimoAccentParamQuantity;
@@ -304,16 +306,16 @@ struct KIMO : Module {
         paramQuantities[ACCENT_PARAM]->paramId = ACCENT_PARAM;
         paramQuantities[ACCENT_PARAM]->minValue = 1.0f;
         paramQuantities[ACCENT_PARAM]->maxValue = 7.0f;
-        paramQuantities[ACCENT_PARAM]->defaultValue = 1.0f;
+        paramQuantities[ACCENT_PARAM]->defaultValue = 3.0f;
         paramQuantities[ACCENT_PARAM]->name = "Accent";
         paramQuantities[ACCENT_PARAM]->snapEnabled = true;
-        
-        configParam(ACCENT_DELAY_PARAM, 0.01f, 2.0f, 0.3f, "Accent Delay", " s");
-        configParam(TUNE_PARAM, std::log2(24.0f), std::log2(500.0f), std::log2(60.0f), "Tune", " Hz", 2.f);
-        configParam(FM_PARAM, 0.0f, 1.0f, 0.5f, "FM Amount");
-        configParam(PUNCH_PARAM, 0.0f, 1.0f, 0.5f, "Punch Amount");
-        configParam(DECAY_PARAM, std::log(0.01f), std::log(2.0f), std::log(0.3f), "Decay", " s", 2.718281828f);
-        configParam(SHAPE_PARAM, 0.0f, 0.99f, 0.5f, "Shape");
+
+        configParam(ACCENT_DELAY_PARAM, 0.01f, 2.0f, 0.54331988096237183f, "Accent Delay", " s");
+        configParam(TUNE_PARAM, std::log2(24.0f), std::log2(500.0f), 4.5849623680114746f, "Tune", " Hz", 2.f);
+        configParam(FM_PARAM, 0.0f, 1.0f, 0.12400007992982864f, "FM Amount");
+        configParam(PUNCH_PARAM, 0.0f, 1.0f, 0.67500001192092896f, "Punch Amount");
+        configParam(DECAY_PARAM, std::log(0.01f), std::log(2.0f), -3.180246114730835f, "Decay", " s", 2.718281828f);
+        configParam(SHAPE_PARAM, 0.0f, 0.99f, 0.11884991824626923f, "Shape");
         
         configOutput(VCA_ENV_OUTPUT, "VCA Envelope");
         configOutput(FM_ENV_OUTPUT, "FM Envelope");
@@ -364,6 +366,9 @@ struct KIMO : Module {
         track.length = GLOBAL_LENGTH;
 
         float fillParam = params[FILL_PARAM].getValue();
+        if (inputs[FILL_CV_INPUT].isConnected()) {
+            fillParam += inputs[FILL_CV_INPUT].getVoltage() * 10.0f;
+        }
         float fillPercentage = clamp(fillParam, 0.0f, 100.0f);
         track.fill = (int)std::round((fillPercentage / 100.0f) * track.length);
 
@@ -442,6 +447,7 @@ struct KIMOWidget : ModuleWidget {
         addParam(createParamCentered<RoundBlackKnob>(Vec(45, 189), module, KIMO::DECAY_PARAM));
 
         addParam(createParamCentered<RoundBlackKnob>(Vec(15, 231), module, KIMO::SHAPE_PARAM));
+        addInput(createInputCentered<PJ301MPort>(Vec(45, 231), module, KIMO::FILL_CV_INPUT));
 
         addInput(createInputCentered<PJ301MPort>(Vec(15, 272), module, KIMO::FM_CV_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(45, 272), module, KIMO::TUNE_CV_INPUT));

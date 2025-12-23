@@ -28,19 +28,20 @@ struct U8 : Module {
     };
 
     static constexpr int DELAY_BUFFER_SIZE = 2048;
-    float delayBuffer[DELAY_BUFFER_SIZE];
-    int delayWriteIndex = 0;
+    static constexpr int MAX_POLY = 16;
+    float delayBuffer[MAX_POLY][DELAY_BUFFER_SIZE];
+    int delayWriteIndex[MAX_POLY];
 
     bool muteState = false;
     dsp::SchmittTrigger muteTrigger;
 
     U8() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-        
+
         configParam(LEVEL_PARAM, 0.0f, 2.0f, 1.0f, "Level");
         configParam(DUCK_LEVEL_PARAM, 0.0f, 1.0f, 0.0f, "Duck Level");
         configSwitch(MUTE_PARAM, 0.0f, 1.0f, 0.0f, "Mute", {"Unmuted", "Muted"});
-        
+
         configInput(LEFT_INPUT, "Left Audio");
         configInput(RIGHT_INPUT, "Right Audio");
         configInput(DUCK_INPUT, "Duck Signal");
@@ -48,80 +49,149 @@ struct U8 : Module {
         configInput(MUTE_TRIG_INPUT, "Mute Trigger");
         configInput(CHAIN_LEFT_INPUT, "Chain Left");
         configInput(CHAIN_RIGHT_INPUT, "Chain Right");
-        
+
         configOutput(LEFT_OUTPUT, "Left Audio");
         configOutput(RIGHT_OUTPUT, "Right Audio");
-        
+
         configLight(MUTE_LIGHT, "Mute Indicator");
-        
-        for (int i = 0; i < DELAY_BUFFER_SIZE; i++) {
-            delayBuffer[i] = 0.0f;
+
+        for (int c = 0; c < MAX_POLY; c++) {
+            for (int i = 0; i < DELAY_BUFFER_SIZE; i++) {
+                delayBuffer[c][i] = 0.0f;
+            }
+            delayWriteIndex[c] = 0;
         }
     }
 
     void process(const ProcessArgs& args) override {
+        // Handle mute trigger (monophonic)
         if (inputs[MUTE_TRIG_INPUT].isConnected()) {
             if (muteTrigger.process(inputs[MUTE_TRIG_INPUT].getVoltage())) {
                 muteState = !muteState;
                 params[MUTE_PARAM].setValue(muteState ? 1.0f : 0.0f);
             }
         }
-        
-        float leftInput = inputs[LEFT_INPUT].getVoltage();
-        float rightInput;
-        
-        bool leftConnected = inputs[LEFT_INPUT].isConnected();
-        bool rightConnected = inputs[RIGHT_INPUT].isConnected();
-        
-        if (leftConnected && !rightConnected) {
-            int delaySamples = (int)(0.02f * args.sampleRate);
-            delaySamples = clamp(delaySamples, 1, DELAY_BUFFER_SIZE - 1);
-            
-            int readIndex = (delayWriteIndex - delaySamples + DELAY_BUFFER_SIZE) % DELAY_BUFFER_SIZE;
-            rightInput = delayBuffer[readIndex];
-            
-            delayBuffer[delayWriteIndex] = leftInput;
-            delayWriteIndex = (delayWriteIndex + 1) % DELAY_BUFFER_SIZE;
-        } else if (rightConnected) {
-            rightInput = inputs[RIGHT_INPUT].getVoltage();
-        } else {
-            rightInput = leftInput;
-        }
-        
-        float duckCV = clamp(inputs[DUCK_INPUT].getVoltage() / 10.0f, 0.0f, 1.0f);
-        float duckAmount = params[DUCK_LEVEL_PARAM].getValue();
-        float sidechainCV = clamp(1.0f - (duckCV * duckAmount * 3.0f), 0.0f, 1.0f);
-        
-        float levelParam = params[LEVEL_PARAM].getValue();
-        if (inputs[LEVEL_CV_INPUT].isConnected()) {
-            float cvInput = clamp(inputs[LEVEL_CV_INPUT].getVoltage() / 5.0f, 0.0f, 2.0f);
-            levelParam *= cvInput;
-        }
-        
-        leftInput *= levelParam * sidechainCV;
-        rightInput *= levelParam * sidechainCV;
-        
+
         bool muted = params[MUTE_PARAM].getValue() > 0.5f;
         lights[MUTE_LIGHT].setBrightness(muted ? 1.0f : 0.0f);
-        
-        if (muted) {
-            leftInput = 0.0f;
-            rightInput = 0.0f;
+
+        // Get polyphonic channel counts
+        int leftChannels = inputs[LEFT_INPUT].getChannels();
+        int rightChannels = inputs[RIGHT_INPUT].getChannels();
+        int chainLeftChannels = inputs[CHAIN_LEFT_INPUT].getChannels();
+        int chainRightChannels = inputs[CHAIN_RIGHT_INPUT].getChannels();
+
+        // Determine output channel count
+        int outputLeftChannels = std::max({leftChannels, chainLeftChannels, 1});
+        int outputRightChannels = std::max({rightChannels, chainRightChannels, 1});
+
+        // If left is connected but right isn't, use delay for stereo effect
+        bool useDelay = inputs[LEFT_INPUT].isConnected() && !inputs[RIGHT_INPUT].isConnected();
+        if (useDelay) {
+            outputRightChannels = outputLeftChannels;
         }
-        
-        float chainLeftInput = inputs[CHAIN_LEFT_INPUT].getVoltage();
-        float chainRightInput = inputs[CHAIN_RIGHT_INPUT].getVoltage();
-        
-        outputs[LEFT_OUTPUT].setVoltage(leftInput + chainLeftInput);
-        outputs[RIGHT_OUTPUT].setVoltage(rightInput + chainRightInput);
+
+        outputs[LEFT_OUTPUT].setChannels(outputLeftChannels);
+        outputs[RIGHT_OUTPUT].setChannels(outputRightChannels);
+
+        // Get duck and level parameters (can be polyphonic)
+        int duckChannels = inputs[DUCK_INPUT].getChannels();
+        int levelCvChannels = inputs[LEVEL_CV_INPUT].getChannels();
+
+        float levelParam = params[LEVEL_PARAM].getValue();
+        float duckAmount = params[DUCK_LEVEL_PARAM].getValue();
+
+        // Process left output channels
+        for (int c = 0; c < outputLeftChannels; c++) {
+            float leftInput = (c < leftChannels) ? inputs[LEFT_INPUT].getPolyVoltage(c) : 0.0f;
+            float chainLeftInput = (c < chainLeftChannels) ? inputs[CHAIN_LEFT_INPUT].getPolyVoltage(c) : 0.0f;
+
+            // Apply ducking (use matching channel or channel 0)
+            float duckCV = 0.0f;
+            if (inputs[DUCK_INPUT].isConnected()) {
+                int duckChan = (c < duckChannels) ? c : 0;
+                duckCV = clamp(inputs[DUCK_INPUT].getPolyVoltage(duckChan) / 10.0f, 0.0f, 1.0f);
+            }
+            float sidechainCV = clamp(1.0f - (duckCV * duckAmount * 3.0f), 0.0f, 1.0f);
+
+            // Apply level control
+            float level = levelParam;
+            if (inputs[LEVEL_CV_INPUT].isConnected()) {
+                int levelChan = (c < levelCvChannels) ? c : 0;
+                float cvLevel = clamp(inputs[LEVEL_CV_INPUT].getPolyVoltage(levelChan) / 10.0f, 0.0f, 1.0f);
+                level = levelParam * cvLevel;
+            }
+
+            leftInput *= level * sidechainCV;
+
+            if (muted) {
+                leftInput = 0.0f;
+            }
+
+            outputs[LEFT_OUTPUT].setVoltage(leftInput + chainLeftInput, c);
+        }
+
+        // Process right output channels
+        for (int c = 0; c < outputRightChannels; c++) {
+            float rightInput = 0.0f;
+
+            if (useDelay && c < leftChannels) {
+                // Use delay for right channel when only left is connected
+                int delaySamples = (int)(0.02f * args.sampleRate);
+                delaySamples = clamp(delaySamples, 1, DELAY_BUFFER_SIZE - 1);
+
+                int readIndex = (delayWriteIndex[c] - delaySamples + DELAY_BUFFER_SIZE) % DELAY_BUFFER_SIZE;
+                rightInput = delayBuffer[c][readIndex];
+
+                // Store left input in delay buffer
+                delayBuffer[c][delayWriteIndex[c]] = inputs[LEFT_INPUT].getPolyVoltage(c);
+                delayWriteIndex[c] = (delayWriteIndex[c] + 1) % DELAY_BUFFER_SIZE;
+            } else if (c < rightChannels) {
+                rightInput = inputs[RIGHT_INPUT].getPolyVoltage(c);
+            }
+
+            float chainRightInput = (c < chainRightChannels) ? inputs[CHAIN_RIGHT_INPUT].getPolyVoltage(c) : 0.0f;
+
+            // Apply ducking
+            float duckCV = 0.0f;
+            if (inputs[DUCK_INPUT].isConnected()) {
+                int duckChan = (c < duckChannels) ? c : 0;
+                duckCV = clamp(inputs[DUCK_INPUT].getPolyVoltage(duckChan) / 10.0f, 0.0f, 1.0f);
+            }
+            float sidechainCV = clamp(1.0f - (duckCV * duckAmount * 3.0f), 0.0f, 1.0f);
+
+            // Apply level control
+            float level = levelParam;
+            if (inputs[LEVEL_CV_INPUT].isConnected()) {
+                int levelChan = (c < levelCvChannels) ? c : 0;
+                float cvLevel = clamp(inputs[LEVEL_CV_INPUT].getPolyVoltage(levelChan) / 10.0f, 0.0f, 1.0f);
+                level = levelParam * cvLevel;
+            }
+
+            rightInput *= level * sidechainCV;
+
+            if (muted) {
+                rightInput = 0.0f;
+            }
+
+            outputs[RIGHT_OUTPUT].setVoltage(rightInput + chainRightInput, c);
+        }
     }
-    
+
     void processBypass(const ProcessArgs& args) override {
-        float chainLeftInput = inputs[CHAIN_LEFT_INPUT].getVoltage();
-        float chainRightInput = inputs[CHAIN_RIGHT_INPUT].getVoltage();
-        
-        outputs[LEFT_OUTPUT].setVoltage(chainLeftInput);
-        outputs[RIGHT_OUTPUT].setVoltage(chainRightInput);
+        int chainLeftChannels = inputs[CHAIN_LEFT_INPUT].getChannels();
+        int chainRightChannels = inputs[CHAIN_RIGHT_INPUT].getChannels();
+
+        outputs[LEFT_OUTPUT].setChannels(chainLeftChannels);
+        outputs[RIGHT_OUTPUT].setChannels(chainRightChannels);
+
+        for (int c = 0; c < chainLeftChannels; c++) {
+            outputs[LEFT_OUTPUT].setVoltage(inputs[CHAIN_LEFT_INPUT].getPolyVoltage(c), c);
+        }
+
+        for (int c = 0; c < chainRightChannels; c++) {
+            outputs[RIGHT_OUTPUT].setVoltage(inputs[CHAIN_RIGHT_INPUT].getPolyVoltage(c), c);
+        }
     }
 };
 

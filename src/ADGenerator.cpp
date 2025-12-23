@@ -52,25 +52,39 @@ struct ADGenerator : Module {
     float bpfGains[3] = {3.0f, 3.0f, 3.0f};
     
     struct BandPassFilter {
-        float lowpass = 0.0f;
-        float highpass = 0.0f;
-        float bandpass = 0.0f;
-        
+        float lowpass1 = 0.0f, highpass1 = 0.0f, bandpass1 = 0.0f;
+        float lowpass2 = 0.0f, highpass2 = 0.0f, bandpass2 = 0.0f;
+        float lowpass3 = 0.0f, highpass3 = 0.0f, bandpass3 = 0.0f;
+        float lowpass4 = 0.0f, highpass4 = 0.0f, bandpass4 = 0.0f;
+
         void reset() {
-            lowpass = 0.0f;
-            highpass = 0.0f;
-            bandpass = 0.0f;
+            lowpass1 = highpass1 = bandpass1 = 0.0f;
+            lowpass2 = highpass2 = bandpass2 = 0.0f;
+            lowpass3 = highpass3 = bandpass3 = 0.0f;
+            lowpass4 = highpass4 = bandpass4 = 0.0f;
         }
-        
+
         float process(float input, float cutoff, float sampleRate) {
             float f = 2.0f * std::sin(M_PI * cutoff / sampleRate);
             f = clamp(f, 0.0f, 1.0f);
-            
-            lowpass += f * (input - lowpass);
-            highpass = input - lowpass;
-            bandpass += f * (highpass - bandpass);
-            
-            return bandpass;
+
+            lowpass1 += f * (input - lowpass1);
+            highpass1 = input - lowpass1;
+            bandpass1 += f * (highpass1 - bandpass1);
+
+            lowpass2 += f * (bandpass1 - lowpass2);
+            highpass2 = bandpass1 - lowpass2;
+            bandpass2 += f * (highpass2 - bandpass2);
+
+            lowpass3 += f * (bandpass2 - lowpass3);
+            highpass3 = bandpass2 - lowpass3;
+            bandpass3 += f * (highpass3 - bandpass3);
+
+            lowpass4 += f * (bandpass3 - lowpass4);
+            highpass4 = bandpass3 - lowpass4;
+            bandpass4 += f * (highpass4 - bandpass4);
+
+            return bandpass4;
         }
     };
     
@@ -284,16 +298,33 @@ struct ADGenerator : Module {
         
         configParam(ATK_ALL_PARAM, -1.0f, 1.0f, 0.0f, "Attack All");
         configParam(DEC_ALL_PARAM, -1.0f, 1.0f, 0.0f, "Decay All");
-        configParam(AUTO_ROUTE_PARAM, 0.0f, 1.0f, 0.0f, "Auto Route");
-        
+        configParam(AUTO_ROUTE_PARAM, 0.0f, 1.0f, 1.0f, "Auto Route");
+
+        // Track 1 預設值來自 .vcvm
+        configParam(TRACK1_ATTACK_PARAM, 0.0f, 1.0f, 0.0020000000949949026f, "Track 1 Attack", " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
+        configParam(TRACK1_DECAY_PARAM, 0.0f, 1.0f, 0.30000001192092896f, "Track 1 Decay", " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
+        configParam(TRACK1_CURVE_PARAM, -0.99f, 0.99f, -0.74844002723693848f, "Track 1 Curve");
+        configParam(TRACK1_BPF_ENABLE_PARAM, 0.0f, 1.0f, 0.0f, "Track 1 BPF Enable");
+        configParam(TRACK1_BPF_FREQ_PARAM, 20.0f, 8000.0f, 200.0f, "Track 1 BPF Frequency", " Hz");
+        configParam(TRACK1_BPF_GAIN_PARAM, 0.1f, 100.0f, 3.0f, "Track 1 BPF Gain", "x");
+
+        // Track 2 預設值來自 .vcvm
+        configParam(TRACK2_ATTACK_PARAM, 0.0f, 1.0f, 0.0f, "Track 2 Attack", " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
+        configParam(TRACK2_DECAY_PARAM, 0.0f, 1.0f, 0.30000001192092896f, "Track 2 Decay", " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
+        configParam(TRACK2_CURVE_PARAM, -0.99f, 0.99f, -0.8316001296043396f, "Track 2 Curve");
+        configParam(TRACK2_BPF_ENABLE_PARAM, 0.0f, 1.0f, 0.0f, "Track 2 BPF Enable");
+        configParam(TRACK2_BPF_FREQ_PARAM, 20.0f, 8000.0f, 1000.0f, "Track 2 BPF Frequency", " Hz");
+        configParam(TRACK2_BPF_GAIN_PARAM, 0.1f, 100.0f, 3.0f, "Track 2 BPF Gain", "x");
+
+        // Track 3 預設值來自 .vcvm
+        configParam(TRACK3_ATTACK_PARAM, 0.0f, 1.0f, 0.0f, "Track 3 Attack", " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
+        configParam(TRACK3_DECAY_PARAM, 0.0f, 1.0f, 0.30000001192092896f, "Track 3 Decay", " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
+        configParam(TRACK3_CURVE_PARAM, -0.99f, 0.99f, -0.73062008619308472f, "Track 3 Curve");
+        configParam(TRACK3_BPF_ENABLE_PARAM, 0.0f, 1.0f, 0.0f, "Track 3 BPF Enable");
+        configParam(TRACK3_BPF_FREQ_PARAM, 20.0f, 8000.0f, 5000.0f, "Track 3 BPF Frequency", " Hz");
+        configParam(TRACK3_BPF_GAIN_PARAM, 0.1f, 100.0f, 3.0f, "Track 3 BPF Gain", "x");
+
         for (int i = 0; i < 3; ++i) {
-            configParam(TRACK1_ATTACK_PARAM + i * 6, 0.0f, 1.0f, 0.1f, string::f("Track %d Attack", i + 1), " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
-            configParam(TRACK1_DECAY_PARAM + i * 6, 0.0f, 1.0f, 0.3f, string::f("Track %d Decay", i + 1), " s", 0.0f, 1.0f, std::pow(10.0f, -2.0f));
-            configParam(TRACK1_CURVE_PARAM + i * 6, -0.99f, 0.99f, 0.0f, string::f("Track %d Curve", i + 1));
-            configParam(TRACK1_BPF_ENABLE_PARAM + i * 6, 0.0f, 1.0f, 0.0f, string::f("Track %d BPF Enable", i + 1));
-            configParam(TRACK1_BPF_FREQ_PARAM + i * 6, 20.0f, 8000.0f, i == 0 ? 200.0f : (i == 1 ? 1000.0f : 5000.0f), string::f("Track %d BPF Frequency", i + 1), " Hz");
-            configParam(TRACK1_BPF_GAIN_PARAM + i * 6, 0.1f, 10.0f, 3.0f, string::f("Track %d BPF Gain", i + 1), "x");
-            
             configInput(TRACK1_TRIG_INPUT + i, string::f("Track %d Trigger", i + 1));
             configOutput(TRACK1_OUTPUT + i, string::f("Track %d Envelope", i + 1));
         }

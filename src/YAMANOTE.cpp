@@ -58,6 +58,8 @@ struct YAMANOTE : Module {
         LIGHTS_LEN
     };
 
+    static constexpr int MAX_POLY = 16;
+
     YAMANOTE() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
         
@@ -85,54 +87,141 @@ struct YAMANOTE : Module {
     }
 
     void process(const ProcessArgs& args) override {
-        float sendAL = 0.0f, sendAR = 0.0f;
-        float sendBL = 0.0f, sendBR = 0.0f;
-        float mixL = 0.0f, mixR = 0.0f;
-        
-        for (int i = 0; i < 8; ++i) {
-            float inputL = inputs[CH1_L_INPUT + i * 2].getVoltage();
-            float inputR = inputs[CH1_R_INPUT + i * 2].getVoltage();
-            
-            if (inputs[CH1_L_INPUT + i * 2].isConnected() && !inputs[CH1_R_INPUT + i * 2].isConnected()) {
-                inputR = inputL;
-            }
-            
-            float sendALevel = params[CH1_SEND_A_PARAM + i * 2].getValue();
-            float sendBLevel = params[CH1_SEND_B_PARAM + i * 2].getValue();
-            
-            sendAL += inputL * sendALevel;
-            sendAR += inputR * sendALevel;
-            sendBL += inputL * sendBLevel;
-            sendBR += inputR * sendBLevel;
+        // Determine maximum polyphonic channels across all inputs
+        int maxChannels = 1;
 
+        // Check channel inputs
+        for (int i = 0; i < 8; ++i) {
+            int leftChannels = inputs[CH1_L_INPUT + i * 2].getChannels();
+            int rightChannels = inputs[CH1_R_INPUT + i * 2].getChannels();
+            maxChannels = std::max({maxChannels, leftChannels, rightChannels});
         }
-        
-        outputs[SEND_A_L_OUTPUT].setVoltage(sendAL);
-        outputs[SEND_A_R_OUTPUT].setVoltage(sendAR);
-        outputs[SEND_B_L_OUTPUT].setVoltage(sendBL);
-        outputs[SEND_B_R_OUTPUT].setVoltage(sendBR);
-        
-        float returnAL = inputs[RETURN_A_L_INPUT].getVoltage();
-        float returnAR = inputs[RETURN_A_R_INPUT].getVoltage();
-        float returnBL = inputs[RETURN_B_L_INPUT].getVoltage();
-        float returnBR = inputs[RETURN_B_R_INPUT].getVoltage();
-        
-        float chainL = inputs[CHAIN_L_INPUT].getVoltage();
-        float chainR = inputs[CHAIN_R_INPUT].getVoltage();
-        
-        mixL += returnAL + returnBL + chainL;
-        mixR += returnAR + returnBR + chainR;
-        
-        outputs[MIX_L_OUTPUT].setVoltage(mixL);
-        outputs[MIX_R_OUTPUT].setVoltage(mixR);
+
+        // Check return and chain inputs
+        maxChannels = std::max({maxChannels,
+            inputs[CHAIN_L_INPUT].getChannels(),
+            inputs[CHAIN_R_INPUT].getChannels(),
+            inputs[RETURN_A_L_INPUT].getChannels(),
+            inputs[RETURN_A_R_INPUT].getChannels(),
+            inputs[RETURN_B_L_INPUT].getChannels(),
+            inputs[RETURN_B_R_INPUT].getChannels()
+        });
+
+        // Set output channels
+        outputs[SEND_A_L_OUTPUT].setChannels(maxChannels);
+        outputs[SEND_A_R_OUTPUT].setChannels(maxChannels);
+        outputs[SEND_B_L_OUTPUT].setChannels(maxChannels);
+        outputs[SEND_B_R_OUTPUT].setChannels(maxChannels);
+        outputs[MIX_L_OUTPUT].setChannels(maxChannels);
+        outputs[MIX_R_OUTPUT].setChannels(maxChannels);
+
+        // Process each polyphonic channel
+        for (int c = 0; c < maxChannels; c++) {
+            float sendAL = 0.0f, sendAR = 0.0f;
+            float sendBL = 0.0f, sendBR = 0.0f;
+            float mixL = 0.0f, mixR = 0.0f;
+
+            // Process each input channel
+            for (int i = 0; i < 8; ++i) {
+                int leftChannels = inputs[CH1_L_INPUT + i * 2].getChannels();
+                int rightChannels = inputs[CH1_R_INPUT + i * 2].getChannels();
+
+                float inputL = 0.0f, inputR = 0.0f;
+
+                // Get input voltages (use channel 0 if current channel doesn't exist)
+                if (inputs[CH1_L_INPUT + i * 2].isConnected()) {
+                    int useChan = (c < leftChannels) ? c : 0;
+                    inputL = inputs[CH1_L_INPUT + i * 2].getPolyVoltage(useChan);
+                }
+
+                if (inputs[CH1_R_INPUT + i * 2].isConnected()) {
+                    int useChan = (c < rightChannels) ? c : 0;
+                    inputR = inputs[CH1_R_INPUT + i * 2].getPolyVoltage(useChan);
+                } else if (inputs[CH1_L_INPUT + i * 2].isConnected()) {
+                    // If only left is connected, use it for right as well
+                    inputR = inputL;
+                }
+
+                float sendALevel = params[CH1_SEND_A_PARAM + i * 2].getValue();
+                float sendBLevel = params[CH1_SEND_B_PARAM + i * 2].getValue();
+
+                sendAL += inputL * sendALevel;
+                sendAR += inputR * sendALevel;
+                sendBL += inputL * sendBLevel;
+                sendBR += inputR * sendBLevel;
+            }
+
+            // Set send outputs
+            outputs[SEND_A_L_OUTPUT].setVoltage(sendAL, c);
+            outputs[SEND_A_R_OUTPUT].setVoltage(sendAR, c);
+            outputs[SEND_B_L_OUTPUT].setVoltage(sendBL, c);
+            outputs[SEND_B_R_OUTPUT].setVoltage(sendBR, c);
+
+            // Process returns and chain
+            float returnAL = 0.0f, returnAR = 0.0f;
+            float returnBL = 0.0f, returnBR = 0.0f;
+            float chainL = 0.0f, chainR = 0.0f;
+
+            if (inputs[RETURN_A_L_INPUT].isConnected()) {
+                int chanCount = inputs[RETURN_A_L_INPUT].getChannels();
+                int useChan = (c < chanCount) ? c : 0;
+                returnAL = inputs[RETURN_A_L_INPUT].getPolyVoltage(useChan);
+            }
+
+            if (inputs[RETURN_A_R_INPUT].isConnected()) {
+                int chanCount = inputs[RETURN_A_R_INPUT].getChannels();
+                int useChan = (c < chanCount) ? c : 0;
+                returnAR = inputs[RETURN_A_R_INPUT].getPolyVoltage(useChan);
+            }
+
+            if (inputs[RETURN_B_L_INPUT].isConnected()) {
+                int chanCount = inputs[RETURN_B_L_INPUT].getChannels();
+                int useChan = (c < chanCount) ? c : 0;
+                returnBL = inputs[RETURN_B_L_INPUT].getPolyVoltage(useChan);
+            }
+
+            if (inputs[RETURN_B_R_INPUT].isConnected()) {
+                int chanCount = inputs[RETURN_B_R_INPUT].getChannels();
+                int useChan = (c < chanCount) ? c : 0;
+                returnBR = inputs[RETURN_B_R_INPUT].getPolyVoltage(useChan);
+            }
+
+            if (inputs[CHAIN_L_INPUT].isConnected()) {
+                int chanCount = inputs[CHAIN_L_INPUT].getChannels();
+                int useChan = (c < chanCount) ? c : 0;
+                chainL = inputs[CHAIN_L_INPUT].getPolyVoltage(useChan);
+            }
+
+            if (inputs[CHAIN_R_INPUT].isConnected()) {
+                int chanCount = inputs[CHAIN_R_INPUT].getChannels();
+                int useChan = (c < chanCount) ? c : 0;
+                chainR = inputs[CHAIN_R_INPUT].getPolyVoltage(useChan);
+            }
+
+            // Mix outputs
+            mixL = returnAL + returnBL + chainL;
+            mixR = returnAR + returnBR + chainR;
+
+            outputs[MIX_L_OUTPUT].setVoltage(mixL, c);
+            outputs[MIX_R_OUTPUT].setVoltage(mixR, c);
+        }
     }
-    
+
     void processBypass(const ProcessArgs& args) override {
-        float chainL = inputs[CHAIN_L_INPUT].getVoltage();
-        float chainR = inputs[CHAIN_R_INPUT].getVoltage();
-        
-        outputs[MIX_L_OUTPUT].setVoltage(chainL);
-        outputs[MIX_R_OUTPUT].setVoltage(chainR);
+        int chainLeftChannels = inputs[CHAIN_L_INPUT].getChannels();
+        int chainRightChannels = inputs[CHAIN_R_INPUT].getChannels();
+        int maxChannels = std::max(chainLeftChannels, chainRightChannels);
+
+        outputs[MIX_L_OUTPUT].setChannels(maxChannels);
+        outputs[MIX_R_OUTPUT].setChannels(maxChannels);
+
+        for (int c = 0; c < maxChannels; c++) {
+            float chainL = (c < chainLeftChannels) ? inputs[CHAIN_L_INPUT].getPolyVoltage(c) : 0.0f;
+            float chainR = (c < chainRightChannels) ? inputs[CHAIN_R_INPUT].getPolyVoltage(c) : 0.0f;
+
+            outputs[MIX_L_OUTPUT].setVoltage(chainL, c);
+            outputs[MIX_R_OUTPUT].setVoltage(chainR, c);
+        }
     }
 };
 

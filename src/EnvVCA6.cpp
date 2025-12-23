@@ -1,12 +1,13 @@
 #include "plugin.hpp"
 #include <cmath>
 
-// AD Envelope class (based on ADGenerator)
+// AD/AHR Envelope class (based on ADGenerator)
 struct ADEnvelope {
     enum Phase {
         IDLE,
         ATTACK,
-        DECAY
+        HOLD,    // New hold phase for AHR mode
+        DECAY    // Also serves as Release in AHR mode
     };
 
     Phase phase = IDLE;
@@ -19,6 +20,8 @@ struct ADEnvelope {
     float followerState = 0.0f;
     float attackCoeff = 0.0f;
     float releaseCoeff = 0.0f;
+    bool ahrMode = false;  // false = AD mode, true = AHR mode
+    bool gateHigh = false; // Track gate state for AHR mode
 
     dsp::SchmittTrigger trigger;
 
@@ -76,11 +79,20 @@ struct ADEnvelope {
     }
 
     float processTriggerEnvelope(float triggerVoltage, float sampleTime, float attack, float decay, float curve) {
+        bool currentGateHigh = triggerVoltage > 1.0f;
+
         // Trigger on rising edge (SchmittTrigger uses 0.1V low / 2.0V high thresholds)
         if (trigger.process(triggerVoltage)) {
             phase = ATTACK;
             phaseTime = 0.0f;
         }
+
+        // In AHR mode, detect gate release to start release phase
+        if (ahrMode && gateHigh && !currentGateHigh && phase == HOLD) {
+            phase = DECAY;  // Start release phase
+            phaseTime = 0.0f;
+        }
+        gateHigh = currentGateHigh;
 
         switch (phase) {
             case IDLE:
@@ -90,12 +102,26 @@ struct ADEnvelope {
             case ATTACK:
                 phaseTime += sampleTime;
                 if (phaseTime >= attack) {
-                    phase = DECAY;
-                    phaseTime = 0.0f;
+                    if (ahrMode) {
+                        phase = HOLD;  // Go to hold phase in AHR mode
+                        triggerOutput = 1.0f;
+                    } else {
+                        phase = DECAY;  // Go directly to decay in AD mode
+                        phaseTime = 0.0f;
+                    }
                     triggerOutput = 1.0f;
                 } else {
                     float t = phaseTime / attack;
                     triggerOutput = applyCurve(t, curve);
+                }
+                break;
+
+            case HOLD:
+                // Stay at full level while gate is high (AHR mode only)
+                triggerOutput = 1.0f;
+                if (!gateHigh) {
+                    phase = DECAY;
+                    phaseTime = 0.0f;
                 }
                 break;
 
@@ -139,36 +165,42 @@ struct EnvVCA6 : Module {
         CH1_OUT_VOL_PARAM,
         CH1_GATE_TRIG_PARAM,
         CH1_SUM_LATCH_PARAM,
+        CH1_ENV_MODE_PARAM,  // 0 = AD, 1 = AHR
         // Channel 2
         CH2_ATTACK_PARAM,
         CH2_RELEASE_PARAM,
         CH2_OUT_VOL_PARAM,
         CH2_GATE_TRIG_PARAM,
         CH2_SUM_LATCH_PARAM,
+        CH2_ENV_MODE_PARAM,
         // Channel 3
         CH3_ATTACK_PARAM,
         CH3_RELEASE_PARAM,
         CH3_OUT_VOL_PARAM,
         CH3_GATE_TRIG_PARAM,
         CH3_SUM_LATCH_PARAM,
+        CH3_ENV_MODE_PARAM,
         // Channel 4
         CH4_ATTACK_PARAM,
         CH4_RELEASE_PARAM,
         CH4_OUT_VOL_PARAM,
         CH4_GATE_TRIG_PARAM,
         CH4_SUM_LATCH_PARAM,
+        CH4_ENV_MODE_PARAM,
         // Channel 5
         CH5_ATTACK_PARAM,
         CH5_RELEASE_PARAM,
         CH5_OUT_VOL_PARAM,
         CH5_GATE_TRIG_PARAM,
         CH5_SUM_LATCH_PARAM,
+        CH5_ENV_MODE_PARAM,
         // Channel 6
         CH6_ATTACK_PARAM,
         CH6_RELEASE_PARAM,
         CH6_OUT_VOL_PARAM,
         CH6_GATE_TRIG_PARAM,
         CH6_SUM_LATCH_PARAM,
+        CH6_ENV_MODE_PARAM,
         GATE_MODE_PARAM, // 0 = full cycle gate, 1 = end of cycle trigger
         PARAMS_LEN
     };
@@ -260,17 +292,18 @@ struct EnvVCA6 : Module {
     EnvVCA6() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 
-        // Configure parameters for all 6 channels
+        // Configure parameters for all 6 channels (6 params per channel)
         for (int i = 0; i < 6; i++) {
-            configParam(CH1_ATTACK_PARAM + i * 5, 0.f, 1.f, 0.1f, string::f("Ch %d Attack", i + 1));
-            configParam(CH1_RELEASE_PARAM + i * 5, 0.f, 1.f, 0.5f, string::f("Ch %d Release", i + 1));
-            configParam(CH1_OUT_VOL_PARAM + i * 5, 0.f, 1.f, 0.8f, string::f("Ch %d Out Volume", i + 1));
-            configParam(CH1_GATE_TRIG_PARAM + i * 5, 0.f, 1.f, 0.f, string::f("Ch %d Manual Gate (Momentary)", i + 1));
+            configParam(CH1_ATTACK_PARAM + i * 6, 0.f, 1.f, 0.1f, string::f("Ch %d Attack", i + 1));
+            configParam(CH1_RELEASE_PARAM + i * 6, 0.f, 1.f, 0.5f, string::f("Ch %d Release", i + 1));
+            configParam(CH1_OUT_VOL_PARAM + i * 6, 0.f, 1.f, 0.8f, string::f("Ch %d Out Volume", i + 1));
+            configParam(CH1_GATE_TRIG_PARAM + i * 6, 0.f, 1.f, 0.f, string::f("Ch %d Manual Gate (Momentary)", i + 1));
             if (i < 5) { // Only CH1-5 have sum buttons
-                configParam(CH1_SUM_LATCH_PARAM + i * 5, 0.f, 1.f, 0.f, string::f("Ch %d Sum to Ch6", i + 1));
+                configParam(CH1_SUM_LATCH_PARAM + i * 6, 0.f, 1.f, 0.f, string::f("Ch %d Sum to Ch6", i + 1));
             } else { // CH6 sum button is disabled/hidden
-                configParam(CH1_SUM_LATCH_PARAM + i * 5, 0.f, 1.f, 0.f, "Disabled");
+                configParam(CH1_SUM_LATCH_PARAM + i * 6, 0.f, 1.f, 0.f, "Disabled");
             }
+            configParam(CH1_ENV_MODE_PARAM + i * 6, 0.f, 1.f, 0.f, string::f("Ch %d Env Mode (AD/AHR)", i + 1));
 
             // Configure inputs
             configInput(CH1_IN_L_INPUT + i * 4, string::f("Ch %d In L", i + 1));
@@ -314,10 +347,14 @@ struct EnvVCA6 : Module {
 
     void process(const ProcessArgs& args) override {
         for (int i = 0; i < 6; i++) {
-            // Get parameters for this channel
-            float attackParam = params[CH1_ATTACK_PARAM + i * 5].getValue();
-            float releaseParam = params[CH1_RELEASE_PARAM + i * 5].getValue();
-            float outVolParam = params[CH1_OUT_VOL_PARAM + i * 5].getValue();
+            // Get parameters for this channel (6 params per channel)
+            float attackParam = params[CH1_ATTACK_PARAM + i * 6].getValue();
+            float releaseParam = params[CH1_RELEASE_PARAM + i * 6].getValue();
+            float outVolParam = params[CH1_OUT_VOL_PARAM + i * 6].getValue();
+            bool ahrMode = params[CH1_ENV_MODE_PARAM + i * 6].getValue() > 0.5f;
+
+            // Set envelope mode
+            envelopes[i].ahrMode = ahrMode;
 
             // Get inputs
             float inL = inputs[CH1_IN_L_INPUT + i * 4].getVoltage();
@@ -331,7 +368,7 @@ struct EnvVCA6 : Module {
             }
 
             // Manual gate logic: momentary (only while button pressed)
-            bool manualGateActive = params[CH1_GATE_TRIG_PARAM + i * 5].getValue() > 0.5f;
+            bool manualGateActive = params[CH1_GATE_TRIG_PARAM + i * 6].getValue() > 0.5f;
 
             // Combine gate sources (input + momentary manual gate)
             float combinedGate = std::max(gateIn, manualGateActive ? 10.f : 0.f);
@@ -417,7 +454,7 @@ struct EnvVCA6 : Module {
         int sumCount = 0;
 
         for (int i = 0; i < 5; i++) { // Only sum first 5 channels (CH1-CH5)
-            bool sumEnabled = params[CH1_SUM_LATCH_PARAM + i * 5].getValue() > 0.5f;
+            bool sumEnabled = params[CH1_SUM_LATCH_PARAM + i * 6].getValue() > 0.5f;
             if (sumEnabled) {
                 sumL += outputs[CH1_OUT_L_OUTPUT + i * 4].getVoltage() * 0.3f; // Scale for mixing
                 sumR += outputs[CH1_OUT_R_OUTPUT + i * 4].getVoltage() * 0.3f;
@@ -465,15 +502,14 @@ struct EnvVCA6Widget : ModuleWidget {
             addInput(createInputCentered<PJ301MPort>(Vec(45, y + 24), module, EnvVCA6::CH1_VOL_CTRL_INPUT + i * 4));
 
             // Control knobs (center) - matching VCV positions
-            addParam(createParamCentered<RoundBlackKnob>(Vec(75, y), module, EnvVCA6::CH1_ATTACK_PARAM + i * 5));
-            addParam(createParamCentered<RoundBlackKnob>(Vec(105, y), module, EnvVCA6::CH1_RELEASE_PARAM + i * 5));
-            addParam(createParamCentered<RoundBlackKnob>(Vec(135, y), module, EnvVCA6::CH1_OUT_VOL_PARAM + i * 5));
+            addParam(createParamCentered<RoundBlackKnob>(Vec(75, y), module, EnvVCA6::CH1_ATTACK_PARAM + i * 6));
+            addParam(createParamCentered<RoundBlackKnob>(Vec(105, y), module, EnvVCA6::CH1_RELEASE_PARAM + i * 6));
+            addParam(createParamCentered<RoundBlackKnob>(Vec(135, y), module, EnvVCA6::CH1_OUT_VOL_PARAM + i * 6));
 
             // Buttons - VCV uses box.pos (top-left), MetaModule uses centered
-            // VCV box.pos(70, y+15) size 10x10 → center (75, y+20)
-            // VCV box.pos(100, y+15) size 10x10 → center (105, y+20)
-            addParam(createParamCentered<VCVButton>(Vec(75, y + 20), module, EnvVCA6::CH1_GATE_TRIG_PARAM + i * 5));
-            addParam(createParamCentered<VCVButton>(Vec(105, y + 20), module, EnvVCA6::CH1_SUM_LATCH_PARAM + i * 5));
+            addParam(createParamCentered<VCVButton>(Vec(75, y + 20), module, EnvVCA6::CH1_GATE_TRIG_PARAM + i * 6));
+            addParam(createParamCentered<VCVButton>(Vec(95, y + 20), module, EnvVCA6::CH1_ENV_MODE_PARAM + i * 6));
+            addParam(createParamCentered<VCVButton>(Vec(115, y + 20), module, EnvVCA6::CH1_SUM_LATCH_PARAM + i * 6));
 
             // VCA activity light - matching VCV position
             addChild(createLightCentered<MediumLight<GreenLight>>(Vec(135, y + 20), module, EnvVCA6::CH1_VCA_LIGHT + i));

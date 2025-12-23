@@ -41,10 +41,10 @@ struct SwingLFO : Module {
     SwingLFO() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
         
-        configParam(FREQ_PARAM, -3.0f, 7.0f, 1.0f, "Frequency", " Hz", 2.0f, 1.0f);
-        configParam(SWING_PARAM, 0.0f, 1.0f, 0.0f, "Swing", "°", 0.0f, -90.0f, 180.0f);
-        configParam(SHAPE_PARAM, 0.0f, 1.0f, 0.5f, "Shape", "%", 0.f, 100.f);
-        configParam(MIX_PARAM, 0.0f, 1.0f, 0.5f, "Mix");
+        configParam(FREQ_PARAM, -3.0f, 7.0f, 1.5849624872207642f, "Frequency", " Hz", 2.0f, 1.0f);
+        configParam(SWING_PARAM, 0.0f, 1.0f, 0.29900002479553223f, "Swing", "°", 0.0f, -90.0f, 180.0f);
+        configParam(SHAPE_PARAM, 0.0f, 1.0f, 0.12099999934434891f, "Shape", "%", 0.f, 100.f);
+        configParam(MIX_PARAM, 0.0f, 1.0f, 0.38400006294250488f, "Mix");
         
         configParam(FREQ_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "Freq CV Attenuverter");
         configParam(SWING_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "Swing CV Attenuverter");
@@ -65,15 +65,17 @@ struct SwingLFO : Module {
         switch (waveType) {
             case SAW: {
                 if (shape < 0.5f) {
-                    float sawWave = phase;
-                    float triWave = (phase < 0.5f) ? (2.0f * phase) : (2.0f - 2.0f * phase);
+                    // Shape 0-0.5: 往下斜坡 -> 三角波
+                    float rampWave = 1.0f - phase;  // 下降斜坡 (1 -> 0)
+                    float triWave = (phase < 0.5f) ? (2.0f * phase) : (2.0f - 2.0f * phase);  // 三角波
                     float mix = shape * 2.0f;
-                    return (sawWave * (1.0f - mix) + triWave * mix) * 10.0f;
+                    return (rampWave * (1.0f - mix) + triWave * mix) * 10.0f;
                 } else {
-                    float triWave = (phase < 0.5f) ? (2.0f * phase) : (2.0f - 2.0f * phase);
-                    float rampWave = 1.0f - phase;
+                    // Shape 0.5-1: 三角波 -> 往上鋸齒
+                    float triWave = (phase < 0.5f) ? (2.0f * phase) : (2.0f - 2.0f * phase);  // 三角波
+                    float sawWave = phase;  // 上升鋸齒 (0 -> 1)
                     float mix = (shape - 0.5f) * 2.0f;
-                    return (triWave * (1.0f - mix) + rampWave * mix) * 10.0f;
+                    return (triWave * (1.0f - mix) + sawWave * mix) * 10.0f;
                 }
             }
             case PULSE: {

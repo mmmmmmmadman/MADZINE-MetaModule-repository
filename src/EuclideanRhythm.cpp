@@ -298,31 +298,75 @@ struct EuclideanRhythm : Module {
         int chain123_indices[] = {0, 1, 0, 2};
         chain123.setTrackIndices(chain123_indices, 4);
 
+        // Track 1 預設值
+        configParam(TRACK1_DIVMULT_PARAM, -3.0f, 3.0f, 0.0f, "T1 Div/Mult");
+        getParamQuantity(TRACK1_DIVMULT_PARAM)->snapEnabled = true;
+        delete paramQuantities[TRACK1_DIVMULT_PARAM];
+        paramQuantities[TRACK1_DIVMULT_PARAM] = new DivMultParamQuantity;
+        paramQuantities[TRACK1_DIVMULT_PARAM]->module = this;
+        paramQuantities[TRACK1_DIVMULT_PARAM]->paramId = TRACK1_DIVMULT_PARAM;
+        paramQuantities[TRACK1_DIVMULT_PARAM]->minValue = -3.0f;
+        paramQuantities[TRACK1_DIVMULT_PARAM]->maxValue = 3.0f;
+        paramQuantities[TRACK1_DIVMULT_PARAM]->defaultValue = 0.0f;
+        paramQuantities[TRACK1_DIVMULT_PARAM]->name = "T1 Div/Mult";
+        paramQuantities[TRACK1_DIVMULT_PARAM]->snapEnabled = true;
+
+        configParam(TRACK1_LENGTH_PARAM, 1.0f, 32.0f, 16.0f, "T1 Length");
+        getParamQuantity(TRACK1_LENGTH_PARAM)->snapEnabled = true;
+        configParam(TRACK1_FILL_PARAM, 0.0f, 100.0f, 100.0f, "T1 Fill", "%");
+        configParam(TRACK1_SHIFT_PARAM, 0.0f, 31.0f, 0.0f, "T1 Shift");
+        getParamQuantity(TRACK1_SHIFT_PARAM)->snapEnabled = true;
+        configParam(TRACK1_LENGTH_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T1 Length CV");
+        configParam(TRACK1_FILL_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T1 Fill CV");
+        configParam(TRACK1_SHIFT_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T1 Shift CV");
+
+        // Track 2 預設值
+        configParam(TRACK2_DIVMULT_PARAM, -3.0f, 3.0f, 1.0f, "T2 Div/Mult");
+        getParamQuantity(TRACK2_DIVMULT_PARAM)->snapEnabled = true;
+        delete paramQuantities[TRACK2_DIVMULT_PARAM];
+        paramQuantities[TRACK2_DIVMULT_PARAM] = new DivMultParamQuantity;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->module = this;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->paramId = TRACK2_DIVMULT_PARAM;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->minValue = -3.0f;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->maxValue = 3.0f;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->defaultValue = 1.0f;
+        paramQuantities[TRACK2_DIVMULT_PARAM]->name = "T2 Div/Mult";
+        paramQuantities[TRACK2_DIVMULT_PARAM]->snapEnabled = true;
+
+        configParam(TRACK2_LENGTH_PARAM, 1.0f, 32.0f, 16.0f, "T2 Length");
+        getParamQuantity(TRACK2_LENGTH_PARAM)->snapEnabled = true;
+        configParam(TRACK2_FILL_PARAM, 0.0f, 100.0f, 50.0f, "T2 Fill", "%");
+        configParam(TRACK2_SHIFT_PARAM, 0.0f, 31.0f, 0.0f, "T2 Shift");
+        getParamQuantity(TRACK2_SHIFT_PARAM)->snapEnabled = true;
+        configParam(TRACK2_LENGTH_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T2 Length CV");
+        configParam(TRACK2_FILL_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T2 Fill CV");
+        configParam(TRACK2_SHIFT_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T2 Shift CV");
+
+        // Track 3 預設值
+        configParam(TRACK3_DIVMULT_PARAM, -3.0f, 3.0f, 2.0f, "T3 Div/Mult");
+        getParamQuantity(TRACK3_DIVMULT_PARAM)->snapEnabled = true;
+        delete paramQuantities[TRACK3_DIVMULT_PARAM];
+        paramQuantities[TRACK3_DIVMULT_PARAM] = new DivMultParamQuantity;
+        paramQuantities[TRACK3_DIVMULT_PARAM]->module = this;
+        paramQuantities[TRACK3_DIVMULT_PARAM]->paramId = TRACK3_DIVMULT_PARAM;
+        paramQuantities[TRACK3_DIVMULT_PARAM]->minValue = -3.0f;
+        paramQuantities[TRACK3_DIVMULT_PARAM]->maxValue = 3.0f;
+        paramQuantities[TRACK3_DIVMULT_PARAM]->defaultValue = 2.0f;
+        paramQuantities[TRACK3_DIVMULT_PARAM]->name = "T3 Div/Mult";
+        paramQuantities[TRACK3_DIVMULT_PARAM]->snapEnabled = true;
+
+        configParam(TRACK3_LENGTH_PARAM, 1.0f, 32.0f, 16.0f, "T3 Length");
+        getParamQuantity(TRACK3_LENGTH_PARAM)->snapEnabled = true;
+        configParam(TRACK3_FILL_PARAM, 0.0f, 100.0f, 25.0f, "T3 Fill", "%");
+        configParam(TRACK3_SHIFT_PARAM, 0.0f, 31.0f, 0.0f, "T3 Shift");
+        getParamQuantity(TRACK3_SHIFT_PARAM)->snapEnabled = true;
+        configParam(TRACK3_LENGTH_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T3 Length CV");
+        configParam(TRACK3_FILL_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T3 Fill CV");
+        configParam(TRACK3_SHIFT_CV_ATTEN_PARAM, -1.0f, 1.0f, 0.0f, "T3 Shift CV");
+
         for (int i = 0; i < 3; ++i) {
-            int paramBase = TRACK1_DIVMULT_PARAM + i * 7;
             int inputBase = TRACK1_LENGTH_CV_INPUT + i * 3;
-            
-            configParam(paramBase, -3.0f, 3.0f, 0.0f, string::f("T%d Div/Mult", i+1));
-            getParamQuantity(paramBase)->snapEnabled = true;
-            delete paramQuantities[paramBase];
-            paramQuantities[paramBase] = new DivMultParamQuantity;
-            paramQuantities[paramBase]->module = this;
-            paramQuantities[paramBase]->paramId = paramBase;
-            paramQuantities[paramBase]->minValue = -3.0f;
-            paramQuantities[paramBase]->maxValue = 3.0f;
-            paramQuantities[paramBase]->defaultValue = 0.0f;
-            paramQuantities[paramBase]->name = string::f("T%d Div/Mult", i+1);
-            paramQuantities[paramBase]->snapEnabled = true;
-            
-            configParam(paramBase + 1, 1.0f, 32.0f, 16.0f, string::f("T%d Length", i+1));
-            getParamQuantity(paramBase + 1)->snapEnabled = true;
-            configParam(paramBase + 2, 0.0f, 100.0f, 25.0f, string::f("T%d Fill", i+1), "%");
-            configParam(paramBase + 3, 0.0f, 31.0f, 0.0f, string::f("T%d Shift", i+1));
-            getParamQuantity(paramBase + 3)->snapEnabled = true;
-            configParam(paramBase + 4, -1.0f, 1.0f, 0.0f, string::f("T%d Length CV", i+1));
-            configParam(paramBase + 5, -1.0f, 1.0f, 0.0f, string::f("T%d Fill CV", i+1));
-            configParam(paramBase + 6, -1.0f, 1.0f, 0.0f, string::f("T%d Shift CV", i+1));
-            
+
             configInput(inputBase, string::f("T%d Length CV", i+1));
             configInput(inputBase + 1, string::f("T%d Fill CV", i+1));
             configInput(inputBase + 2, string::f("T%d Shift CV", i+1));
