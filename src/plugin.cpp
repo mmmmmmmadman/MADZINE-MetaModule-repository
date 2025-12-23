@@ -29,4 +29,11 @@ void init(Plugin* p) {
     p->addModel(modelEnvVCA6);
     p->addModel(modelNIGOQ);
     p->addModel(modelRunshow);
+    p->addModel(modelDECAPyramid);
+    p->addModel(modelKEN);
+    p->addModel(modelLaunchpad);
+    p->addModel(modelPyramid);
+    p->addModel(modelSongMode);
+    p->addModel(modelUniversalRhythm);
+    p->addModel(modelWeiiiDocumenta);
 }

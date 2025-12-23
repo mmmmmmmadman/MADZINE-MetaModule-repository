@@ -37,6 +37,13 @@ target_sources(MADZINE PRIVATE
     src/EnvVCA6.cpp
     src/NIGOQ.cpp
     src/Runshow.cpp
+    src/DECAPyramid.cpp
+    src/KEN.cpp
+    src/Launchpad.cpp
+    src/Pyramid.cpp
+    src/SongMode.cpp
+    src/UniversalRhythm.cpp
+    src/WeiiiDocumenta.cpp
 )
 
 # Create plugin or assets depending on build mode

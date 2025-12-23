@@ -31,7 +31,13 @@
     "Quantizer",
     "NIGOQ",
     "Runshow",
-    "EnvVCA6"
+    "EnvVCA6",
+    "DECAPyramid",
+    "KEN",
+    "Launchpad",
+    "Pyramid",
+    "SongMode",
+    "UniversalRhythm"
   ],
   "modules": [
     {
@@ -159,6 +165,42 @@
       "name": "Env VCA 6",
       "description": "6-channel envelope VCA processor with AD generators",
       "tags": ["Envelope generator", "VCA", "Mixer"]
+    },
+    {
+      "slug": "DECAPyramid",
+      "name": "DECAPyramid",
+      "description": "8-track 3D panning router with send/return",
+      "tags": ["Mixer", "Utility"]
+    },
+    {
+      "slug": "KEN",
+      "name": "KEN",
+      "description": "8-to-2 binaural processor for 3D spatial audio rendering",
+      "tags": ["Mixer", "Utility"]
+    },
+    {
+      "slug": "Launchpad",
+      "name": "Launchpad",
+      "description": "8x8 grid CV/audio looper with session mode, per-cell recording, and send/return mixer",
+      "tags": ["Sampler", "Sequencer", "Recording", "Mixer"]
+    },
+    {
+      "slug": "Pyramid",
+      "name": "Pyramid",
+      "description": "3D panning router",
+      "tags": ["Mixer", "Utility"]
+    },
+    {
+      "slug": "SongMode",
+      "name": "SONG MODE",
+      "description": "8-input sequential switch with customizable playback order, per-input clock length, and learn mode",
+      "tags": ["Switch", "Sequencer", "Utility"]
+    },
+    {
+      "slug": "UniversalRhythm",
+      "name": "Universal Rhythm",
+      "description": "Cross-cultural rhythm generator with integrated synthesis and 8 voice outputs",
+      "tags": ["Sequencer", "Drum", "Clock generator"]
     }
   ]
 }
