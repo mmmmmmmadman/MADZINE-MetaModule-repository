@@ -224,7 +224,14 @@ addChild(createLightCentered<MediumLight<GreenRedLight>>(...));
 
 ### UI 元件位置偏移
 
-移除所有自訂 Widget（TransparentWidget、Widget 子類）
+1. 移除所有自訂 Widget（TransparentWidget、Widget 子類）
+2. 如果所有模組的旋鈕/port 都太小且偏右下，問題是 simulator 的 `build/assets/` 缺少標準元件圖片（`rack-lib/` 等）。CMake 建置順序競爭會導致 `firmware/assets/` 的複製被跳過。修復方式：
+   ```bash
+   cd /Users/madzine/Documents/OpenSource/4ms-metamodule/simulator
+   cp -r ../firmware/assets/* build/assets/
+   rm -f build/assets.uimg
+   cmake --build build -- asset-image
+   ```
 
 ### 編譯錯誤：vector/string 相關
 

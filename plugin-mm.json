@@ -87,6 +87,66 @@
 		{
 			"slug": "Runshow",
 			"name": "Runshow"
+		},
+		{
+			"slug": "DECAPyramid",
+			"name": "DECAPyramid"
+		},
+		{
+			"slug": "KEN",
+			"name": "KEN"
+		},
+		{
+			"slug": "Launchpad",
+			"name": "Launchpad"
+		},
+		{
+			"slug": "Pyramid",
+			"name": "Pyramid"
+		},
+		{
+			"slug": "SongMode",
+			"name": "SONG MODE"
+		},
+		{
+			"slug": "UniversalRhythm",
+			"name": "Universal Rhythm"
+		},
+		{
+			"slug": "WeiiiDocumenta",
+			"name": "weiii documenta"
+		},
+		{
+			"slug": "ALEXANDERPLATZ",
+			"name": "ALEXANDERPLATZ"
+		},
+		{
+			"slug": "SHINJUKU",
+			"name": "SHINJUKU"
+		},
+		{
+			"slug": "Drummmmmmer",
+			"name": "Drummmmmmer"
+		},
+		{
+			"slug": "theKICK",
+			"name": "theKICK"
+		},
+		{
+			"slug": "Facehugger",
+			"name": "Facehugger"
+		},
+		{
+			"slug": "Ovomorph",
+			"name": "Ovomorph"
+		},
+		{
+			"slug": "Runner",
+			"name": "Runner"
+		},
+		{
+			"slug": "UniRhythm",
+			"name": "Uni Rhythm"
 		}
 	]
 }

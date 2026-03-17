@@ -1,7 +1,7 @@
 {
   "slug": "MADZINE",
   "name": "MADZINE",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "license": "GPL-3.0-or-later",
   "brand": "MADZINE",
   "author": "MAD",
@@ -200,6 +200,54 @@
       "slug": "UniversalRhythm",
       "name": "Universal Rhythm",
       "description": "Cross-cultural rhythm generator with integrated synthesis and 8 voice outputs",
+      "tags": ["Sequencer", "Drum", "Clock generator"]
+    },
+    {
+      "slug": "ALEXANDERPLATZ",
+      "name": "ALEXANDERPLATZ",
+      "description": "4-track mixer with 8-band master EQ, level, duck and mute controls",
+      "tags": ["Mixer", "Equalizer"]
+    },
+    {
+      "slug": "SHINJUKU",
+      "name": "SHINJUKU",
+      "description": "8-track mixer with 12-band master EQ, level, duck and mute controls",
+      "tags": ["Mixer", "Equalizer"]
+    },
+    {
+      "slug": "Drummmmmmer",
+      "name": "Drummmmmmer",
+      "description": "4-voice world drum synthesizer with style presets and spread control",
+      "tags": ["Drum", "Synth voice"]
+    },
+    {
+      "slug": "theKICK",
+      "name": "theKICK",
+      "description": "Kick drum synthesizer with pitch sweep, bend curve and tanh waveshaper",
+      "tags": ["Drum", "Synth voice"]
+    },
+    {
+      "slug": "Facehugger",
+      "name": "Facehugger",
+      "description": "Chaos-modulated granular processor with delay and pitch shifting",
+      "tags": ["Granular", "Effect", "Random"]
+    },
+    {
+      "slug": "Ovomorph",
+      "name": "Ovomorph",
+      "description": "Chaos-modulated stereo reverb with room and decay control",
+      "tags": ["Reverb", "Effect", "Random"]
+    },
+    {
+      "slug": "Runner",
+      "name": "Runner",
+      "description": "Chaos-modulated stereo delay with spread control",
+      "tags": ["Delay", "Effect", "Random"]
+    },
+    {
+      "slug": "UniRhythm",
+      "name": "Uni Rhythm",
+      "description": "Compact 4-track rhythm generator with 8 voice drum synthesis and 3-band isolator",
       "tags": ["Sequencer", "Drum", "Clock generator"]
     }
   ]

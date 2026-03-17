@@ -44,6 +44,14 @@ target_sources(MADZINE PRIVATE
     src/SongMode.cpp
     src/UniversalRhythm.cpp
     src/WeiiiDocumenta.cpp
+    src/ALEXANDERPLATZ.cpp
+    src/SHINJUKU.cpp
+    src/Drummmmmmer.cpp
+    src/theKICK.cpp
+    src/Facehugger.cpp
+    src/Ovomorph.cpp
+    src/Runner.cpp
+    src/UniRhythm.cpp
 )
 
 # Create plugin or assets depending on build mode

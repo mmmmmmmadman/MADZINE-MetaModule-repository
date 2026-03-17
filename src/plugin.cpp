@@ -36,4 +36,12 @@ void init(Plugin* p) {
     p->addModel(modelSongMode);
     p->addModel(modelUniversalRhythm);
     p->addModel(modelWeiiiDocumenta);
+    p->addModel(modelALEXANDERPLATZ);
+    p->addModel(modelSHINJUKU);
+    p->addModel(modelDrummmmmmer);
+    p->addModel(modeltheKICK);
+    p->addModel(modelFacehugger);
+    p->addModel(modelOvomorph);
+    p->addModel(modelRunner);
+    p->addModel(modelUniRhythm);
 }
