@@ -38,5 +38,4 @@ compile_commands.json
 MADZINE/
 plugin-sdk/
 
-# Assets
-assets/
+# Assets (tracked - panel PNGs needed for build)
