@@ -1,7 +1,7 @@
 {
   "slug": "MADZINE",
   "name": "MADZINE",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "license": "GPL-3.0-or-later",
   "brand": "MADZINE",
   "author": "MAD",
@@ -37,7 +37,8 @@
     "Launchpad",
     "Pyramid",
     "SongMode",
-    "UniversalRhythm"
+    "UniversalRhythm",
+    "WeiiiDocumenta"
   ],
   "modules": [
     {
@@ -249,6 +250,12 @@
       "name": "Uni Rhythm",
       "description": "Compact 4-track rhythm generator with 8 voice drum synthesis and 3-band isolator",
       "tags": ["Sequencer", "Drum", "Clock generator"]
+    },
+    {
+      "slug": "WeiiiDocumenta",
+      "name": "weiii documenta",
+      "description": "Stereo audio recorder with slice scanning, morphing, feedback, and polyphonic playback",
+      "tags": ["Sampler", "Recording", "Granular", "Effect"]
     }
   ]
 }

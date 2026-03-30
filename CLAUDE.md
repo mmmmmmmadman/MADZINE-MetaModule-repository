@@ -1,7 +1,7 @@
 # MADZINE MetaModule 移植指南
 
-版本：1.0
-更新日期：2025-12-23
+版本：2.6.0
+更新日期：2026-03-31
 
 ---
 
@@ -14,21 +14,21 @@
 ## 編譯指令
 
 ```bash
-cd /Users/madzine/Documents/MetaModule/MADZINE-MetaModule
+cd /Users/madzine/Documents/OpenSource/MADZINE-MetaModule-repository
 cmake --build build
 ```
 
 ### 測試模擬器
 
 ```bash
-cd /Users/madzine/Documents/MetaModule/4ms-metamodule/simulator
+cd /Users/madzine/Documents/OpenSource/4ms-metamodule/simulator
 timeout 8 ./build/simulator
 ```
 
 ### 強制重建面板資源（解決面板快取問題）
 
 ```bash
-cd /Users/madzine/Documents/MetaModule/4ms-metamodule/simulator
+cd /Users/madzine/Documents/OpenSource/4ms-metamodule/simulator
 rm -rf build/assets build/assets.uimg
 cmake --build build
 ```
@@ -38,12 +38,12 @@ cmake --build build
 ## 專案結構
 
 ```
-MADZINE-MetaModule/
+MADZINE-MetaModule-repository/
 ├── src/
 │   ├── plugin.hpp              # 主要標頭檔（extern Model* 宣告）
 │   ├── plugin.cpp              # 模組註冊（p->addModel）
 │   └── [ModuleName].cpp        # 各模組實作
-├── assets/                     # PNG 面板（12HP = 183x380 像素）
+├── assets/                     # PNG 面板（高度 240px，寬度依 HP 而定）
 ├── CMakeLists.txt              # 編譯設定
 └── CLAUDE.md                   # 本文件
 ```
@@ -100,8 +100,8 @@ addChild(createLightCentered<MediumLight<GreenRedLight>>(...));
    ```
 
 2. **建立面板**
-   - 從 VCV 版本截圖或轉換 SVG
-   - 尺寸：12HP = 183x380, 6HP = 92x380
+   - 從 VCV 版本的 `.img` 檔（data URI base64 PNG）轉換
+   - 高度固定 240px，寬度依 HP：4HP=38, 8HP=76, 12HP=113, 16HP=152, 32HP=304, 40HP=380
    - 格式：PNG
    - 放置於 `assets/ModuleName.png`
 
@@ -119,63 +119,6 @@ addChild(createLightCentered<MediumLight<GreenRedLight>>(...));
    ```
 
 ---
-
-## 製作日誌
-
-### 2025-12-23
-
-#### WeiiiDocumenta 移植完成
-
-- 將 10 秒錄音緩衝改為固定陣列：
-  ```cpp
-  static constexpr int MAX_BUFFER_SECONDS = 10;
-  static constexpr int MAX_BUFFER_SIZE = 48000 * MAX_BUFFER_SECONDS;
-  static constexpr int MAX_SLICES = 64;
-  static constexpr int MAX_VOICES = 8;
-  static constexpr int MAX_MORPHERS = 20;
-  ```
-- 移除自訂 Widget：WaveformDisplay、UnderlineWidget、SpeedPolyCVLine、GreenBlueLight
-- 移除 osdialog 載入/儲存功能
-- 將 GreenBlueLight 改為標準 GreenRedLight
-
-#### WeiiiDocumenta 錯誤修正
-
-- **Polyphonic Voice 功能修正**：移除 `|| false` 條件判斷錯誤（第 471, 843, 875 行）
-- **切片序列化修正**：`dataToJson()` 改用索引迴圈只儲存有效的 numSlices 個切片
-- **例外處理移除**：移除 try-catch（MetaModule 不支援例外處理）
-
-#### TWNCLight UI 偏移修正
-
-- 移除 WhiteBottomPanel 自訂元件
-
-#### UniversalRhythm UI 偏移修正
-
-- 移除 WhiteBottomPanel 自訂元件
-
-#### UniversalRhythm std::vector 移除
-
-- **PatternGenerator.hpp**：
-  - 新增 `MAX_PATTERN_LENGTH = 32` 常數
-  - `Pattern` struct 改用固定陣列：`float velocities[MAX_PATTERN_LENGTH]`、`bool accents[MAX_PATTERN_LENGTH]`
-  - 所有 `std::vector<float>` 改為 `float weights[MAX_PATTERN_LENGTH]`
-  - 所有 `std::vector<int>` 改為 `int skeleton[8]; int skeletonCount`
-
-- **FillGenerator.hpp**：
-  - 新增 `FillPattern` struct（取代 `std::vector<float>` 返回值）
-  - 新增 `PitchedRollPattern`、`AngselPatternData` struct
-  - 所有 `generate*` 函數改為返回 `FillPattern`
-
-- **UniversalRhythm.cpp**：
-  - `delayedTriggers` 改為固定陣列（MAX_DELAYED_TRIGGERS = 64）
-  - 迭代器迴圈改為索引迴圈（swap-and-pop 刪除法）
-  - `generateFillPattern` 呼叫改用 `FillPattern` 返回值
-
-#### CMake 編譯腳本修正
-
-- **metamodule-plugin-sdk/plugin.cmake**（第 47 行）：
-  - 修正 `PLUGIN_FILE_FULL` 路徑問題
-  - 改用 `cmake_path(APPEND ...)` 產生絕對路徑
-  - 原問題：strip 命令找不到 debug.so 檔案
 
 ---
 
@@ -210,7 +153,15 @@ addChild(createLightCentered<MediumLight<GreenRedLight>>(...));
 | Pyramid | ✅ | |
 | SongMode | ✅ | |
 | UniversalRhythm | ✅ | UI偏移+vector已修正 |
-| WeiiiDocumenta | ✅ | 10秒錄音限制 |
+| WeiiiDocumenta | ✅ | 10秒錄音限制，v2.6.0 加入 Load WAV（async_open_file） |
+| Facehugger | ✅ | v2.5.0 新增 |
+| Ovomorph | ✅ | v2.5.0 新增 |
+| Runner | ✅ | v2.5.0 新增 |
+| theKICK | ✅ | v2.5.0 新增，面板寬度已修正，v2.6.0 加入 Load Sample（async_open_file + dr_wav） |
+| Drummmmmmer | ✅ | v2.5.0 新增 |
+| ALEXANDERPLATZ | ✅ | v2.5.0 新增 |
+| SHINJUKU | ✅ | v2.5.0 新增，需移除自訂 Widget |
+| UniRhythm | ✅ | v2.5.0 新增，需移除 std::vector |
 
 ---
 

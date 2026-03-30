@@ -1,5 +1,8 @@
 #include "plugin.hpp"
 #include <cmath>
+#include <cstring>
+#include "filesystem/async_filebrowser.hh"
+#include "wav/dr_wav.h"
 
 struct theKICK : Module {
     enum ParamId {
@@ -62,6 +65,7 @@ struct theKICK : Module {
     static constexpr int TABLE_SIZE = 1024;
     float sampleTable[TABLE_SIZE] = {};
     bool hasSample = false;
+    char samplePath[256] = {};
 
     // --- Mode (sample interaction type) ---
     // 0=PM(amber), 1=RM(rose), 2=AM(green), 3=SYNC(blue)
@@ -132,6 +136,79 @@ struct theKICK : Module {
         samplePlayPos = 0.f;
         modeValue = 0;
         hasSample = false;
+        for (int i = 0; i < TABLE_SIZE; i++) sampleTable[i] = 0.f;
+    }
+
+    // ========================================================================
+    // Sample loading
+    // ========================================================================
+
+    void loadSampleFromFile() {
+        async_open_file("", "wav,WAV", "Load Sample",
+            [this](char* path) {
+                if (path) {
+                    loadSampleTable(path);
+                    free(path);
+                }
+            }
+        );
+    }
+
+    void loadSampleTable(const char* path) {
+        drwav wav;
+        if (!drwav_init_file(&wav, path, NULL)) {
+            return;
+        }
+
+        unsigned int totalFrames = (unsigned int)wav.totalPCMFrameCount;
+        unsigned int channels = wav.channels;
+
+        if (totalFrames == 0) {
+            drwav_uninit(&wav);
+            return;
+        }
+
+        float* rawData = (float*)malloc(totalFrames * channels * sizeof(float));
+        if (!rawData) {
+            drwav_uninit(&wav);
+            return;
+        }
+
+        drwav_uint64 framesRead = drwav_read_pcm_frames_f32(&wav, totalFrames, rawData);
+        drwav_uninit(&wav);
+
+        if (framesRead == 0) {
+            free(rawData);
+            return;
+        }
+
+        float peak = 0.f;
+        for (drwav_uint64 i = 0; i < framesRead; i++) {
+            float s = rawData[i * channels];
+            float a = s < 0.f ? -s : s;
+            if (a > peak) peak = a;
+        }
+        if (peak < 0.0001f) peak = 1.f;
+
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            float pos = (float)i / (float)(TABLE_SIZE - 1) * (float)(framesRead - 1);
+            int idx = (int)pos;
+            float frac = pos - idx;
+            int next = idx + 1;
+            if (next >= (int)framesRead) next = (int)framesRead - 1;
+            sampleTable[i] = (rawData[idx * channels] * (1.f - frac) + rawData[next * channels] * frac) / peak;
+        }
+
+        free(rawData);
+        hasSample = true;
+
+        strncpy(samplePath, path, sizeof(samplePath) - 1);
+        samplePath[sizeof(samplePath) - 1] = '\0';
+    }
+
+    void clearSample() {
+        hasSample = false;
+        samplePath[0] = '\0';
         for (int i = 0; i < TABLE_SIZE; i++) sampleTable[i] = 0.f;
     }
 
@@ -345,10 +422,36 @@ struct theKICK : Module {
         // Tone knob to frequency: 0=40Hz, 10=20kHz (logarithmic)
         float toneCutoff = 40.f * std::pow(500.f, toneKnob / 10.f);
 
-        // Mode LED: always off (no sample loading on MetaModule)
-        lights[MODE_LIGHT_RED].setBrightness(0.f);
-        lights[MODE_LIGHT_GREEN].setBrightness(0.f);
-        lights[MODE_LIGHT_BLUE].setBrightness(0.f);
+        // Mode LED: show current mode when sample is loaded
+        if (hasSample) {
+            modeValue = (int)params[MODE_PARAM].getValue();
+            switch (modeValue) {
+                case 0: // PM (amber)
+                    lights[MODE_LIGHT_RED].setBrightness(1.f);
+                    lights[MODE_LIGHT_GREEN].setBrightness(0.6f);
+                    lights[MODE_LIGHT_BLUE].setBrightness(0.f);
+                    break;
+                case 1: // RM (rose)
+                    lights[MODE_LIGHT_RED].setBrightness(1.f);
+                    lights[MODE_LIGHT_GREEN].setBrightness(0.f);
+                    lights[MODE_LIGHT_BLUE].setBrightness(0.3f);
+                    break;
+                case 2: // AM (green)
+                    lights[MODE_LIGHT_RED].setBrightness(0.f);
+                    lights[MODE_LIGHT_GREEN].setBrightness(1.f);
+                    lights[MODE_LIGHT_BLUE].setBrightness(0.f);
+                    break;
+                case 3: // SYNC (blue)
+                    lights[MODE_LIGHT_RED].setBrightness(0.f);
+                    lights[MODE_LIGHT_GREEN].setBrightness(0.f);
+                    lights[MODE_LIGHT_BLUE].setBrightness(1.f);
+                    break;
+            }
+        } else {
+            lights[MODE_LIGHT_RED].setBrightness(0.f);
+            lights[MODE_LIGHT_GREEN].setBrightness(0.f);
+            lights[MODE_LIGHT_BLUE].setBrightness(0.f);
+        }
 
         // Trigger detection
         if (triggerDetect.process(inputs[TRIGGER_INPUT].getVoltage(), 0.1f, 2.f)) {
@@ -394,6 +497,16 @@ struct theKICK : Module {
     json_t* dataToJson() override {
         json_t* rootJ = json_object();
         json_object_set_new(rootJ, "modeValue", json_integer(modeValue));
+        if (hasSample) {
+            json_object_set_new(rootJ, "hasSample", json_true());
+            if (samplePath[0] != '\0')
+                json_object_set_new(rootJ, "samplePath", json_string(samplePath));
+            json_t* tableJ = json_array();
+            for (int i = 0; i < TABLE_SIZE; i++) {
+                json_array_append_new(tableJ, json_real(sampleTable[i]));
+            }
+            json_object_set_new(rootJ, "sampleTable", tableJ);
+        }
         return rootJ;
     }
 
@@ -402,6 +515,26 @@ struct theKICK : Module {
         if (modeJ) {
             modeValue = json_integer_value(modeJ);
             params[MODE_PARAM].setValue((float)modeValue);
+        }
+        json_t* hasSampleJ = json_object_get(rootJ, "hasSample");
+        if (hasSampleJ && json_is_true(hasSampleJ)) {
+            json_t* tableJ = json_object_get(rootJ, "sampleTable");
+            if (tableJ && json_is_array(tableJ)) {
+                int len = (int)json_array_size(tableJ);
+                if (len > TABLE_SIZE) len = TABLE_SIZE;
+                for (int i = 0; i < len; i++) {
+                    sampleTable[i] = json_number_value(json_array_get(tableJ, i));
+                }
+                hasSample = true;
+            }
+            json_t* pathJ = json_object_get(rootJ, "samplePath");
+            if (pathJ) {
+                const char* p = json_string_value(pathJ);
+                if (p) {
+                    strncpy(samplePath, p, sizeof(samplePath) - 1);
+                    samplePath[sizeof(samplePath) - 1] = '\0';
+                }
+            }
         }
     }
 };
@@ -483,6 +616,21 @@ struct theKICKWidget : ModuleWidget {
         addInput(createInputCentered<PJ301MPort>(Vec(ioLeft, ioY), module, theKICK::TRIGGER_INPUT));
         addInput(createInputCentered<PJ301MPort>(Vec(ioCenter, ioY), module, theKICK::ACCENT_INPUT));
         addOutput(createOutputCentered<PJ301MPort>(Vec(ioRight, ioY), module, theKICK::OUT_OUTPUT));
+    }
+
+    void appendContextMenu(Menu* menu) override {
+        theKICK* module = dynamic_cast<theKICK*>(this->module);
+        if (!module) return;
+
+        menu->addChild(new MenuSeparator);
+        menu->addChild(createMenuItem("Load Sample", "", [=]() {
+            module->loadSampleFromFile();
+        }));
+        if (module->hasSample) {
+            menu->addChild(createMenuItem("Clear Sample", "", [=]() {
+                module->clearSample();
+            }));
+        }
     }
 };
 

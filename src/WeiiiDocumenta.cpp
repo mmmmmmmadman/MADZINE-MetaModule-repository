@@ -3,6 +3,7 @@
 #include <ctime>
 #include <cstring>
 #include <random>
+#include "filesystem/async_filebrowser.hh"
 
 static constexpr int MAX_BUFFER_SECONDS = 10;
 static constexpr int SAMPLE_RATE = 48000;
@@ -2034,7 +2035,20 @@ void appendContextMenu(ui::Menu* menu) override {
         WeiiiDocumenta* module = dynamic_cast<WeiiiDocumenta*>(this->module);
         if (!module) return;
 
-        // MetaModule: Load/Save WAV disabled (no osdialog support)
+        menu->addChild(new MenuSeparator);
+        menu->addChild(createMenuLabel("Wave File"));
+
+        menu->addChild(createMenuItem("Load WAV", "", [module]() {
+            async_open_file("", "wav,WAV", "Load WAV",
+                [module](char* path) {
+                    if (path) {
+                        module->loadWave(path);
+                        free(path);
+                    }
+                }
+            );
+        }));
+
         menu->addChild(new MenuSeparator);
         menu->addChild(createMenuLabel("Morph Time"));
 
