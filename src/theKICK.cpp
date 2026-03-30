@@ -444,7 +444,7 @@ struct theKICKWidget : ModuleWidget {
         // ================================================================
 
         // --- Row 1: PITCH ---
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(colL, row1Y), module, theKICK::PITCH_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(colL, row1Y), module, theKICK::PITCH_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(colL, row1Y + cvOffset), module, theKICK::PITCH_CV_INPUT));
 
         // --- Row 1 right: MODE button + LED ---
@@ -452,27 +452,27 @@ struct theKICKWidget : ModuleWidget {
         addParam(createParamCentered<VCVButton>(Vec(colR, 86.f), module, theKICK::MODE_PARAM));
 
         // --- Row 2: SWEEP (left) + SAMPLE/FM (right) ---
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(colL, row2Y), module, theKICK::SWEEP_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(colL, row2Y), module, theKICK::SWEEP_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(colL, row2Y + cvOffset), module, theKICK::SWEEP_CV_INPUT));
 
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(colR, row2Y), module, theKICK::SAMPLE_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(colR, row2Y), module, theKICK::SAMPLE_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(colR, row2Y + cvOffset), module, theKICK::SAMPLE_CV_INPUT));
 
         // --- Row 3: BEND (left) + FEEDBACK (right) ---
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(colL, row3Y), module, theKICK::BEND_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(colL, row3Y), module, theKICK::BEND_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(colL, row3Y + cvOffset), module, theKICK::BEND_CV_INPUT));
 
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(colR, row3Y), module, theKICK::FB_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(colR, row3Y), module, theKICK::FB_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(colR, row3Y + cvOffset), module, theKICK::FB_CV_INPUT));
 
         // --- Row 4: DECAY (left) + TONE (center) + DRIVE (right) ---
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(col4L, row4Y), module, theKICK::DECAY_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(col4L, row4Y), module, theKICK::DECAY_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(col4L, row4Y + cvOffset), module, theKICK::DECAY_CV_INPUT));
 
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(col4M, row4Y), module, theKICK::TONE_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(col4M, row4Y), module, theKICK::TONE_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(col4M, row4Y + cvOffset), module, theKICK::TONE_CV_INPUT));
 
-        addParam(createParamCentered<RoundSmallBlackKnob>(Vec(col4R, row4Y), module, theKICK::FOLD_PARAM));
+        addParam(createParamCentered<RoundBlackKnob>(Vec(col4R, row4Y), module, theKICK::FOLD_PARAM));
         addInput(createInputCentered<PJ301MPort>(Vec(col4R, row4Y + cvOffset), module, theKICK::FOLD_CV_INPUT));
 
         // --- I/O in output area ---

@@ -137,6 +137,8 @@ struct Launchpad : Module {
     enum InputId {
         CLOCK_INPUT,
         RESET_INPUT,
+        // Stop all trigger input
+        STOP_ALL_TRIG_INPUT,
         // Row inputs
         ROW_1_INPUT, ROW_2_INPUT, ROW_3_INPUT, ROW_4_INPUT,
         ROW_5_INPUT, ROW_6_INPUT, ROW_7_INPUT, ROW_8_INPUT,
@@ -170,6 +172,7 @@ struct Launchpad : Module {
     dsp::SchmittTrigger resetTrigger;
     dsp::SchmittTrigger sceneTriggers[8];
     dsp::SchmittTrigger stopAllTrigger;
+    dsp::SchmittTrigger stopAllInputTrigger;
     int clockCount = 0;
     int samplesPerClock = 0;
     int samplesSinceLastClock = 0;
@@ -209,6 +212,7 @@ struct Launchpad : Module {
         // Inputs
         configInput(CLOCK_INPUT, "Clock");
         configInput(RESET_INPUT, "Reset");
+        configInput(STOP_ALL_TRIG_INPUT, "Stop All Trigger");
         for (int i = 0; i < 8; i++) {
             configInput(ROW_1_INPUT + i, string::f("Row %d", i + 1));
         }
@@ -419,6 +423,11 @@ struct Launchpad : Module {
 
         // Process stop all
         if (stopAllTrigger.process(params[STOP_ALL_PARAM].getValue())) {
+            stopAll();
+        }
+
+        // Process stop all input trigger
+        if (stopAllInputTrigger.process(inputs[STOP_ALL_TRIG_INPUT].getVoltage(), 0.1f, 1.f)) {
             stopAll();
         }
 
@@ -763,15 +772,16 @@ struct LaunchpadWidget : ModuleWidget {
         addInput(createInputCentered<PJ301MPort>(Vec(525, 50), module, Launchpad::RESET_INPUT));
         addParam(createParamCentered<RoundSmallBlackKnob>(Vec(570, 50), module, Launchpad::QUANTIZE_PARAM));
 
-        // Stop All button
-        addParam(createParamCentered<VCVButton>(Vec(27, 70), module, Launchpad::STOP_ALL_PARAM));
+        // Stop All input and button
+        addInput(createInputCentered<PJ301MPort>(Vec(20, 355), module, Launchpad::STOP_ALL_TRIG_INPUT));
+        addParam(createParamCentered<VCVButton>(Vec(45, 355), module, Launchpad::STOP_ALL_PARAM));
 
         // Scene buttons (aligned with cells)
         float cellStartX = 70;
         float cellSpacing = 44;
         for (int i = 0; i < 8; i++) {
             float x = cellStartX + i * cellSpacing;
-            addParam(createParamCentered<VCVButton>(Vec(x, 70), module, Launchpad::SCENE_1_PARAM + i));
+            addParam(createParamCentered<VCVButton>(Vec(x, 75), module, Launchpad::SCENE_1_PARAM + i));
         }
 
         // 8 rows
@@ -810,20 +820,20 @@ struct LaunchpadWidget : ModuleWidget {
 
         // Bottom section - Send/Return/Mix outputs and inputs
         // Send A
-        addOutput(createOutputCentered<PJ301MPort>(Vec(35, 355), module, Launchpad::SEND_A_L_OUTPUT));
-        addOutput(createOutputCentered<PJ301MPort>(Vec(65, 355), module, Launchpad::SEND_A_R_OUTPUT));
+        addOutput(createOutputCentered<PJ301MPort>(Vec(80, 355), module, Launchpad::SEND_A_L_OUTPUT));
+        addOutput(createOutputCentered<PJ301MPort>(Vec(110, 355), module, Launchpad::SEND_A_R_OUTPUT));
 
         // Return A
-        addInput(createInputCentered<PJ301MPort>(Vec(115, 355), module, Launchpad::RETURN_A_L_INPUT));
-        addInput(createInputCentered<PJ301MPort>(Vec(145, 355), module, Launchpad::RETURN_A_R_INPUT));
+        addInput(createInputCentered<PJ301MPort>(Vec(155, 355), module, Launchpad::RETURN_A_L_INPUT));
+        addInput(createInputCentered<PJ301MPort>(Vec(185, 355), module, Launchpad::RETURN_A_R_INPUT));
 
         // Send B
-        addOutput(createOutputCentered<PJ301MPort>(Vec(215, 355), module, Launchpad::SEND_B_L_OUTPUT));
-        addOutput(createOutputCentered<PJ301MPort>(Vec(245, 355), module, Launchpad::SEND_B_R_OUTPUT));
+        addOutput(createOutputCentered<PJ301MPort>(Vec(245, 355), module, Launchpad::SEND_B_L_OUTPUT));
+        addOutput(createOutputCentered<PJ301MPort>(Vec(275, 355), module, Launchpad::SEND_B_R_OUTPUT));
 
         // Return B
-        addInput(createInputCentered<PJ301MPort>(Vec(295, 355), module, Launchpad::RETURN_B_L_INPUT));
-        addInput(createInputCentered<PJ301MPort>(Vec(325, 355), module, Launchpad::RETURN_B_R_INPUT));
+        addInput(createInputCentered<PJ301MPort>(Vec(330, 355), module, Launchpad::RETURN_B_L_INPUT));
+        addInput(createInputCentered<PJ301MPort>(Vec(360, 355), module, Launchpad::RETURN_B_R_INPUT));
 
         // Mix
         addOutput(createOutputCentered<PJ301MPort>(Vec(535, 355), module, Launchpad::MIX_L_OUTPUT));
