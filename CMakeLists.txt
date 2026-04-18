@@ -6,7 +6,7 @@ if(NOT DEFINED METAMODULE_SDK_DIR)
 endif()
 
 project(MADZINE
-    VERSION 2.6.0
+    VERSION 2.6.1
     DESCRIPTION "MADZINE Modules for MetaModule"
     LANGUAGES C CXX ASM
 )
